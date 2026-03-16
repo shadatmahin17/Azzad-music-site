@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="png" href="Img/Icon.png" />
+    <title>Azaad - The Clarity You Deserve</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+ <!-- Loading Screen -->
+ <div class="loading-screen" id="loadingScreen">
+    <div class="loading-content">
+        <div class="loading-animation">
+            <div class="music-note">♪</div>
+            <div class="music-note">♫</div>
+            <div class="music-note">♪</div>
+        </div>
+        <div class="loading-text">Loading Azaad</div>
+        <div class="progress-bar">
+            <div class="progress-filled" id="loadingProgress"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Mobile Overlay -->
+<div class="mobile-overlay" id="mobileOverlay"></div>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="sidebar-logo">
+            <img src="Img/New Logo.png" alt="Azaad-Logo" />
+        </div>
+        <button class="close-sidebar" id="closeSidebar">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    
+    <ul class="sidebar-menu">
+        <div class="menu-section">
+            <h3 class="menu-title">Discover</h3>
+            <li class="sidebar-item">
+                <a href="#" class="sidebar-link active" data-page="home">
+                    <i class="fas fa-home"></i>
+                    <span>Home</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="#" class="sidebar-link" data-page="albums">
+                    <i class="fas fa-compact-disc"></i>
+                    <span>Albums</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="#" class="sidebar-link" data-page="artists">
+                    <i class="fas fa-user"></i>
+                    <span>Artists</span>
+                </a>
+            </li>
+        </div>
+        
+        <div class="menu-section">
+            <h3 class="menu-title">Your Library</h3>
+            <li class="sidebar-item">
+                <a href="#" class="sidebar-link" data-page="favorites">
+                    <i class="fas fa-heart"></i>
+                    <span>Favorites</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="#" class="sidebar-link" data-page="history">
+                    <i class="fas fa-history"></i>
+                    <span>Recently Played</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="#" class="sidebar-link" data-page="playlists">
+                    <i class="fas fa-list"></i>
+                    <span>Playlists</span>
+                </a>
+            </li>
+        </div>
+    </ul>
+</aside>
+
+<!-- Queue Panel -->
+<div class="queue-panel" id="queuePanel">
+    <div class="queue-header">
+        <h3 class="queue-title">Queue</h3>
+        <button class="close-queue" id="closeQueue">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div class="queue-list" id="queueList">
+        <!-- Queue items will be dynamically loaded here -->
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="main-content">
+    <div class="content">
+        <header>
+            <div class="header-left">
+                <button class="menu-toggle" id="menuToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+            
+            <!-- Centered Logo for Mobile -->
+            <div class="header-center">
+                <div class="logo-title">
+                    <img src="Img/New Logo.png" alt="Azaad-Logo" />
+                </div>
+            </div>
+            
+            <!-- Improved Clock Widget -->
+            <div class="clock-widget" id="clockWidget">
+                <div class="clock-time" id="clockTime">00:00:00</div>
+                <div class="clock-date" id="clockDate">Loading...</div>
+            </div>
+            
+            <div class="header-right">
+                <button class="theme-toggle" id="toggleThemeBtn">
+                    <i class="fas fa-moon" id="themeIcon"></i>
+                    <span class="theme-text">Theme</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Mobile Clock -->
+        <div class="mobile-clock" id="mobileClock">
+            <div class="mobile-clock-time" id="mobileClockTime">00:00:00</div>
+            <div class="mobile-clock-date" id="mobileClockDate">Loading...</div>
+        </div>
+
+        <div class="search-container" id="searchContainer">
+            <i class="fas fa-search search-icon"></i>
+            <input type="search" class="search-bar" id="searchBar" placeholder="Search songs, artists, or albums...">
+        </div>
+
+        <!-- Playlist Navigation -->
+        <div class="playlist-nav" id="playlistNav">
+            <button class="playlist-tab active" data-playlist="trending">Trending</button>
+            <button class="playlist-tab" data-playlist="new">New Songs</button>
+            <button class="playlist-tab" data-playlist="english">English</button>
+            <button class="playlist-tab" data-playlist="hindi">Hindi</button>
+            <button class="playlist-tab" data-playlist="bangla">Bangla</button>
+            <button class="playlist-tab" data-playlist="nasheed">Nasheed</button>
+        </div>
+
+        <!-- Home Page -->
+        <main id="homePage">
+            <!-- Trending Playlist -->
+            <div class="playlist-section active" id="trendingPlaylist">
+                <div class="section-header">
+                    <h2 class="section-title">Trending Now</h2>
+                    <a href="#" class="view-all" data-playlist="trending">View All <i class="fas fa-chevron-right"></i></a>
+                </div>
+                <div class="container-wrapper">
+                    <button class="scroll-btn left">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="container" id="trendingContainer">
+                        <!-- Trending songs will be dynamically loaded here -->
+                    </div>
+                    <button class="scroll-btn right">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    <div class="scroll-indicator">
+                        <div class="scroll-dot active"></div>
+                        <div class="scroll-dot"></div>
+                        <div class="scroll-dot"></div>
+                        <div class="scroll-dot"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- New Songs Playlist -->
+            <div class="playlist-section" id="newPlaylist">
+                <div class="section-header">
+                    <h2 class="section-title">New Releases</h2>
+                    <a href="#" class="view-all" data-playlist="new">View All <i class="fas fa-chevron-right"></i></a>
+                </div>
+                <div class="container-wrapper">
+                    <button class="scroll-btn left">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="container" id="newContainer">
+                        <!-- New songs will be dynamically loaded here -->
+                    </div>
+                    <button class="scroll-btn right">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    <div class="scroll-indicator">
+                        <div class="scroll-dot active"></div>
+                        <div class="scroll-dot"></div>
+                        <div class="scroll-dot"></div>
+                        <div class="scroll-dot"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- English Playlist -->
+            <div class="playlist-section" id="englishPlaylist">
+                <div class="section-header">
+                    <h2 class="section-title">English Songs</h2>
+                    <a href="#" class="view-all" data-playlist="english">View All <i class="fas fa-chevron-right"></i></a>
+                </div>
+                <div class="container-wrapper">
+                    <button class="scroll-btn left">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="container" id="englishContainer">
+                        <!-- English songs will be dynamically loaded here -->
+                    </div>
+                    <button class="scroll-btn right">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    <div class="scroll-indicator">
+                        <div class="scroll-dot active"></div>
+                        <div class="scroll-dot"></div>
+                        <div class="scroll-dot"></div>
+                        <div class="scroll-dot"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hindi Playlist -->
+            <div class="playlist-section" id="hindiPlaylist">
+                <div class="section-header">
+                    <h2 class="section-title">Hindi Songs</h2>
+                    <a href="#" class="view-all" data-playlist="hindi">View All <i class="fas fa-chevron-right"></i></a>
+                </div>
+                <div class="container-wrapper">
+                    <button class="scroll-btn left">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="container" id="hindiContainer">
+                        <!-- Hindi songs will be dynamically loaded here -->
+                    </div>
+                    <button class="scroll-btn right">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    <div class="scroll-indicator">
+                        <div class="scroll-dot active"></div>
+                        <div class="scroll-dot"></div>
+                        <div class="scroll-dot"></div>
+                        <div class="scroll-dot"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bangla Playlist -->
+            <div class="playlist-section" id="banglaPlaylist">
+                <div class="section-header">
+                    <h2 class="section-title">Bangla Songs</h2>
+                    <a href="#" class="view-all" data-playlist="bangla">View All <i class="fas fa-chevron-right"></i></a>
+                </div>
+                <div class="container-wrapper">
+                    <button class="scroll-btn left">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="container" id="banglaContainer">
+                        <!-- Bangla songs will be dynamically loaded here -->
+                    </div>
+                    <button class="scroll-btn right">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    <div class="scroll-indicator">
+                        <div class="scroll-dot active"></div>
+                        <div class="scroll-dot"></div>
+                        <div class="scroll-dot"></div>
+                        <div class="scroll-dot"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nasheed Playlist -->
+            <div class="playlist-section" id="nasheedPlaylist">
+                <div class="section-header">
+                    <h2 class="section-title">Nasheed</h2>
+                    <a href="#" class="view-all" data-playlist="nasheed">View All <i class="fas fa-chevron-right"></i></a>
+                </div>
+                <div class="container-wrapper">
+                    <button class="scroll-btn left">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="container" id="nasheedContainer">
+                        <!-- Nasheed songs will be dynamically loaded here -->
+                    </div>
+                    <button class="scroll-btn right">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    <div class="scroll-indicator">
+                        <div class="scroll-dot active"></div>
+                        <div class="scroll-dot"></div>
+                        <div class="scroll-dot"></div>
+                        <div class="scroll-dot"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Albums Page -->
+        <main id="albumsPage" class="page" style="display: none;">
+            <div class="section-header">
+                <h2 class="section-title">Albums</h2>
+            </div>
+            <div class="container-wrapper">
+                <button class="scroll-btn left">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="container" id="albumsContainer">
+                    <!-- Albums will be dynamically loaded here -->
+                </div>
+                <button class="scroll-btn right">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+                <div class="scroll-indicator">
+                    <div class="scroll-dot active"></div>
+                    <div class="scroll-dot"></div>
+                    <div class="scroll-dot"></div>
+                    <div class="scroll-dot"></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Favorites Page -->
+        <main id="favoritesPage" class="page" style="display: none;">
+            <div class="section-header">
+                <h2 class="section-title">Favorites</h2>
+            </div>
+            <div class="container-wrapper">
+                <button class="scroll-btn left">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="container" id="favoritesContainer">
+                    <!-- Favorite songs will be dynamically loaded here -->
+                </div>
+                <button class="scroll-btn right">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+                <div class="scroll-indicator">
+                    <div class="scroll-dot active"></div>
+                    <div class="scroll-dot"></div>
+                    <div class="scroll-dot"></div>
+                    <div class="scroll-dot"></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Recently Played Page -->
+        <main id="historyPage" class="page" style="display: none;">
+            <div class="section-header">
+                <h2 class="section-title">Recently Played</h2>
+            </div>
+            <div class="container-wrapper">
+                <button class="scroll-btn left">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="container" id="historyContainer">
+                    <!-- Recently played songs will be dynamically loaded here -->
+                </div>
+                <button class="scroll-btn right">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+                <div class="scroll-indicator">
+                    <div class="scroll-dot active"></div>
+                    <div class="scroll-dot"></div>
+                    <div class="scroll-dot"></div>
+                    <div class="scroll-dot"></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Artists Page -->
+        <main id="artistsPage" class="page" style="display: none;">
+            <div class="section-header">
+                <h2 class="section-title">Artists</h2>
+            </div>
+            <div class="container-wrapper">
+                <button class="scroll-btn left">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="container" id="artistsContainer">
+                    <!-- Artists will be dynamically loaded here -->
+                </div>
+                <button class="scroll-btn right">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+                <div class="scroll-indicator">
+                    <div class="scroll-dot active"></div>
+                    <div class="scroll-dot"></div>
+                    <div class="scroll-dot"></div>
+                    <div class="scroll-dot"></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Playlists Page -->
+        <main id="playlistsPage" class="page" style="display: none;">
+            <div class="section-header">
+                <h2 class="section-title">Your Playlists</h2>
+                <button class="card-button" id="createPlaylistBtn">
+                    <i class="fas fa-plus"></i> Create Playlist
+                </button>
+            </div>
+            <div class="container-wrapper">
+                <button class="scroll-btn left">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="container" id="playlistsContainer">
+                    <!-- User playlists will be dynamically loaded here -->
+                </div>
+                <button class="scroll-btn right">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+                <div class="scroll-indicator">
+                    <div class="scroll-dot active"></div>
+                    <div class="scroll-dot"></div>
+                    <div class="scroll-dot"></div>
+                    <div class="scroll-dot"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<footer>
+    <div class="footer-content">
+        <div class="footer-links">
+            <a href="#" class="footer-link">About</a>
+            <a href="#" class="footer-link">Contact</a>
+            <a href="#" class="footer-link">Privacy</a>
+            <a href="#" class="footer-link">Terms</a>
+        </div>
+        <div class="social-links">
+            <a href="#" class="social-link"><i class="fab fa-facebook-f"></i></a>
+            <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
+            <a href="#" class="social-link"><i class="fab fa-instagram"></i></a>
+            <a href="#" class="social-link"><i class="fab fa-spotify"></i></a>
+        </div>
+    </div>
+</footer>
+
+<!-- Audio Controller -->
+<div class="audio-controller hidden" id="audioController">
+    <div class="song-info">
+        <img src="Img/Audio-controller.png" alt="Song Cover" class="song-cover" id="songCover">
+        <div class="song-details">
+            <div class="song-title" id="currentSong">No song selected</div>
+            <div class="song-artist" id="currentArtist"></div>
+        </div>
+    </div>
+
+    <div class="progress-container">
+        <span class="progress-time" id="currentTime">0:00</span>
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-filled" id="progressFilled"></div>
+        </div>
+        <span class="progress-time" id="totalTime">0:00</span>
+    </div>
+
+    <div class="controls">
+        <button class="control-button shuffle-button" id="shuffleBtn" aria-label="Shuffle">
+            <i class="fas fa-random"></i>
+        </button>
+        <button class="control-button" id="prevBtn" aria-label="Previous">
+            <i class="fas fa-step-backward"></i>
+        </button>
+        <button class="control-button play-button" id="playBtn" aria-label="Play/Pause">
+            <i class="fas fa-play" id="playIcon"></i>
+        </button>
+        <button class="control-button" id="nextBtn" aria-label="Next">
+            <i class="fas fa-step-forward"></i>
+        </button>
+        <button class="control-button" id="repeatBtn" aria-label="Repeat">
+            <i class="fas fa-redo"></i>
+        </button>
+        
+        <div class="equalizer" id="equalizer">
+            <div class="equalizer-bar"></div>
+            <div class="equalizer-bar"></div>
+            <div class="equalizer-bar"></div>
+            <div class="equalizer-bar"></div>
+            <div class="equalizer-bar"></div>
+        </div>
+        
+        <button class="control-button queue-button" id="queueBtn" aria-label="Queue">
+            <i class="fas fa-list"></i>
+        </button>
+        
+        <button class="control-button download-button" id="downloadBtn" aria-label="Download">
+            <i class="fas fa-download"></i>
+        </button>
+    </div>
+
+    <div class="volume-container">
+        <span class="volume-icon" id="volumeIcon">
+            <i class="fas fa-volume-up"></i>
+        </span>
+        <div class="volume-bar" id="volumeBar">
+            <div class="volume-filled" id="volumeFilled"></div>
+        </div>
+    </div>
+</div>
+<div id="aiChatWrapper" class="ai-chat-hidden">
+    <div id="aiChatHeader">
+        <span><i class="fas fa-robot"></i> Azaad AI</span>
+        <button id="closeChat" style="background:none; border:none; color:white; cursor:pointer;">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div id="aiMessages"></div>
+    <div id="aiInputArea">
+        <input type="text" id="aiUserInput" placeholder="Ask 'Play Espresso'...">
+        <button id="sendAiBtn"><i class="fas fa-paper-plane"></i></button>
+    </div>
+</div>
+
+<button id="openAiChat" title="Azaad AI Assistant">
+    <i class="fas fa-comment-dots"></i>
+</button>
+   <script src="script.js"></script>
+</body>
+</html>
