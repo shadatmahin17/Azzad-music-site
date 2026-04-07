@@ -62,6 +62,8 @@ class MusicPlayer {
             historyPage: document.getElementById('historyPage'),
             artistsPage: document.getElementById('artistsPage'),
             playlistsPage: document.getElementById('playlistsPage'),
+            aboutPage: document.getElementById('aboutPage'),
+            contactPage: document.getElementById('contactPage'),
             searchBar: document.getElementById('searchBar'),
             searchContainer: document.getElementById('searchContainer'),
             searchFilters: document.getElementById('searchFilters'),
@@ -552,6 +554,38 @@ processAICommand(input) {
                 this.toggleSidebar(false);
             });
         });
+
+        // Footer navigation links
+        document.querySelectorAll('.footer-link[data-page]').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const page = link.dataset.page;
+                this.showPage(page);
+                this.elements.sidebarLinks.forEach(l => l.classList.remove('active'));
+                const matchingSidebarLink = document.querySelector(`.sidebar-link[data-page="${page}"]`);
+                if (matchingSidebarLink) matchingSidebarLink.classList.add('active');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        });
+
+        // Contact form submission
+        const contactForm = document.getElementById('contactForm');
+        if (contactForm) {
+            contactForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const formData = new FormData(contactForm);
+                fetch('/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams(formData).toString()
+                }).then(() => {
+                    this.showToast('Message sent successfully!');
+                    contactForm.reset();
+                }).catch(() => {
+                    this.showToast('Failed to send message. Please try again.');
+                });
+            });
+        }
         
         // Playlist tab events
         this.elements.playlistTabs.forEach(tab => {
@@ -787,6 +821,12 @@ processAICommand(input) {
             case 'playlists':
                 this.elements.playlistsPage.style.display = 'block';
                 this.renderPlaylists();
+                break;
+            case 'about':
+                this.elements.aboutPage.style.display = 'block';
+                break;
+            case 'contact':
+                this.elements.contactPage.style.display = 'block';
                 break;
         }
     }
