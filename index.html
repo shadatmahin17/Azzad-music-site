@@ -83,6 +83,22 @@
                 </a>
             </li>
         </div>
+
+        <div class="menu-section">
+            <h3 class="menu-title">Info</h3>
+            <li class="sidebar-item">
+                <a href="#" class="sidebar-link" data-page="about">
+                    <i class="fas fa-info-circle"></i>
+                    <span>About</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="#" class="sidebar-link" data-page="contact">
+                    <i class="fas fa-envelope"></i>
+                    <span>Contact Us</span>
+                </a>
+            </li>
+        </div>
     </ul>
 </aside>
 
@@ -426,14 +442,107 @@
                 </div>
             </div>
         </main>
+
+        <!-- About Page -->
+        <main id="aboutPage" class="page" style="display: none;">
+            <div class="about-page-content">
+                <div class="section-header">
+                    <h2 class="section-title">About Azaad</h2>
+                </div>
+                <div class="about-hero">
+                    <div class="about-hero-icon">
+                        <img src="Img/New Logo.png" alt="Azaad Logo" class="about-logo" />
+                    </div>
+                    <p class="about-tagline">The Clarity You Deserve</p>
+                </div>
+                <div class="about-sections">
+                    <div class="about-card">
+                        <div class="about-card-icon">
+                            <i class="fas fa-music"></i>
+                        </div>
+                        <h3>Our Mission</h3>
+                        <p>Azaad is a free, open music streaming platform built for music lovers everywhere. We believe in delivering a clean, ad-free listening experience with a curated collection spanning Trending, English, Hindi, Bangla, and Nasheed genres.</p>
+                    </div>
+                    <div class="about-card">
+                        <div class="about-card-icon">
+                            <i class="fas fa-headphones"></i>
+                        </div>
+                        <h3>What We Offer</h3>
+                        <p>Enjoy high-quality audio playback, smart playlists, dark mode, an AI-powered assistant, and a beautifully responsive design that works on any device. Create custom playlists, save your favorites, and discover new music with ease.</p>
+                    </div>
+                    <div class="about-card">
+                        <div class="about-card-icon">
+                            <i class="fas fa-heart"></i>
+                        </div>
+                        <h3>Built with Love</h3>
+                        <p>Azaad is crafted with passion using modern web technologies. Every detail, from the animated equalizer to the intuitive controls, is designed to make your music experience seamless and enjoyable.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Contact Us Page -->
+        <main id="contactPage" class="page" style="display: none;">
+            <div class="contact-page-content">
+                <div class="section-header">
+                    <h2 class="section-title">Contact Us</h2>
+                </div>
+                <div class="contact-wrapper">
+                    <div class="contact-info">
+                        <h3>Get in Touch</h3>
+                        <p>Have questions, feedback, or suggestions? We'd love to hear from you. Reach out using the form or through any of the channels below.</p>
+                        <div class="contact-details">
+                            <div class="contact-detail-item">
+                                <i class="fas fa-envelope"></i>
+                                <span>support@azaad.app</span>
+                            </div>
+                            <div class="contact-detail-item">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <span>Worldwide - 100% Online</span>
+                            </div>
+                        </div>
+                        <div class="contact-social">
+                            <a href="#" class="social-link"><i class="fab fa-facebook-f"></i></a>
+                            <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
+                            <a href="#" class="social-link"><i class="fab fa-instagram"></i></a>
+                            <a href="#" class="social-link"><i class="fab fa-spotify"></i></a>
+                        </div>
+                    </div>
+                    <div class="contact-form-wrapper">
+                        <form class="contact-form" id="contactForm" name="contact" method="POST" data-netlify="true">
+                            <input type="hidden" name="form-name" value="contact" />
+                            <div class="form-group">
+                                <label for="contactName">Name</label>
+                                <input type="text" id="contactName" name="name" placeholder="Your name" required />
+                            </div>
+                            <div class="form-group">
+                                <label for="contactEmail">Email</label>
+                                <input type="email" id="contactEmail" name="email" placeholder="you@example.com" required />
+                            </div>
+                            <div class="form-group">
+                                <label for="contactSubject">Subject</label>
+                                <input type="text" id="contactSubject" name="subject" placeholder="What's this about?" required />
+                            </div>
+                            <div class="form-group">
+                                <label for="contactMessage">Message</label>
+                                <textarea id="contactMessage" name="message" rows="5" placeholder="Tell us more..." required></textarea>
+                            </div>
+                            <button type="submit" class="contact-submit-btn">
+                                <i class="fas fa-paper-plane"></i> Send Message
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
 </div>
 
 <footer>
     <div class="footer-content">
         <div class="footer-links">
-            <a href="#" class="footer-link">About</a>
-            <a href="#" class="footer-link">Contact</a>
+            <a href="#" class="footer-link" data-page="about">About</a>
+            <a href="#" class="footer-link" data-page="contact">Contact</a>
             <a href="#" class="footer-link">Privacy</a>
             <a href="#" class="footer-link">Terms</a>
         </div>
