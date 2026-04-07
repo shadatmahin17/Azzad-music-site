@@ -197,16 +197,16 @@ showAIWelcome() {
             <div class="ai-welcome-title">Hello! I'm Azaad AI Assistant</div>
             <div class="ai-welcome-text">I can help you control music, change themes, and more. Try these commands:</div>
             <div class="command-examples">
-                <div class="command-example" onclick="this.handleQuickCommand('Play Chaleya')">
+                <div class="command-example" data-cmd="play chaleya">
                     <i class="fas fa-play"></i> "Play Chaleya"
                 </div>
-                <div class="command-example" onclick="this.handleQuickCommand('Switch to dark mode')">
+                <div class="command-example" data-cmd="switch to dark mode">
                     <i class="fas fa-moon"></i> "Switch to dark mode"
                 </div>
-                <div class="command-example" onclick="this.handleQuickCommand('Volume up')">
+                <div class="command-example" data-cmd="volume up">
                     <i class="fas fa-volume-up"></i> "Volume up"
                 </div>
-                <div class="command-example" onclick="this.handleQuickCommand('Next song')">
+                <div class="command-example" data-cmd="next song">
                     <i class="fas fa-forward"></i> "Next song"
                 </div>
             </div>
@@ -218,9 +218,8 @@ showAIWelcome() {
     // Bind quick command clicks
     const examples = this.aiElements.messages.querySelectorAll('.command-example');
     examples.forEach(example => {
-        example.onclick = (e) => {
-            const text = e.target.textContent.replace(/^"|"$/g, '').replace(/^"|"$/g, '');
-            this.handleQuickCommand(text);
+        example.onclick = () => {
+            this.handleQuickCommand(example.dataset.cmd || example.textContent.trim());
         };
     });
 }
@@ -295,76 +294,188 @@ addChatMessage(sender, text) {
     
     const bubble = document.createElement('div');
     bubble.className = `chat-bubble ${sender}-bubble`;
-    
-    // Format response text
-    let formattedText = text;
-    if (sender === 'ai') {
-        // Add bullet points for lists
-        if (text.includes('•')) {
-            const lines = text.split('\n');
-            formattedText = lines.map(line => {
-                if (line.includes('•')) {
-                    return line;
-                }
-                return line;
-            }).join('<br>');
-        }
-    }
-    
-    bubble.innerHTML = formattedText;
+
+    // Render plain text for safer output
+    bubble.textContent = text;
+    bubble.style.whiteSpace = 'pre-line';
     this.aiElements.messages.appendChild(bubble);
     this.aiElements.messages.scrollTop = this.aiElements.messages.scrollHeight;
 }
 
-processAICommand(input) {
-    const cmd = input.toLowerCase();
+normalizeCommand(input) {
+    return input
+        .toLowerCase()
+        .replace(/[^\w\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
 
-    // 1. Search & Play
+findPlaylistFromCommand(cmd) {
+    const aliases = {
+        trending: ['trending', 'trend'],
+        new: ['new', 'new songs', 'new releases'],
+        english: ['english'],
+        hindi: ['hindi'],
+        bangla: ['bangla', 'bengali'],
+        nasheed: ['nasheed']
+    };
+
+    for (const [playlist, words] of Object.entries(aliases)) {
+        if (words.some(word => cmd.includes(word))) {
+            return playlist;
+        }
+    }
+    return null;
+}
+
+findBestSongMatch(term) {
+    const q = this.normalizeCommand(term);
+    if (!q) return null;
+
+    // Exact/substring match first
+    let best = this.songs.find(song => {
+        const title = this.normalizeCommand(song.title);
+        const artist = this.normalizeCommand(song.artist);
+        return title.includes(q) || artist.includes(q) || `${title} ${artist}`.includes(q);
+    });
+    if (best) return best;
+
+    // Token overlap fallback
+    const qTokens = new Set(q.split(' '));
+    let bestScore = 0;
+    this.songs.forEach(song => {
+        const hay = `${this.normalizeCommand(song.title)} ${this.normalizeCommand(song.artist)}`;
+        const tokens = new Set(hay.split(' '));
+        let overlap = 0;
+        qTokens.forEach(t => {
+            if (tokens.has(t)) overlap++;
+        });
+        const score = overlap / Math.max(1, qTokens.size);
+        if (score > bestScore) {
+            bestScore = score;
+            best = song;
+        }
+    });
+
+    return bestScore >= 0.5 ? best : null;
+}
+
+playMatchedSong(song) {
+    const inCurrentPlaylist = this.filteredSongs.findIndex(s => s.id === song.id);
+    if (inCurrentPlaylist !== -1) {
+        this.playSong(inCurrentPlaylist);
+        return true;
+    }
+
+    const playlist = song.playlist && song.playlist.length > 0 ? song.playlist[0] : this.currentPlaylist;
+    this.switchPlaylist(playlist);
+    const newIndex = this.filteredSongs.findIndex(s => s.id === song.id);
+    if (newIndex !== -1) {
+        this.playSong(newIndex);
+        return true;
+    }
+    return false;
+}
+
+processAICommand(input) {
+    const cmd = this.normalizeCommand(input);
+
+    // Help command
+    if (cmd.includes('help') || cmd.includes('what can you do')) {
+        return `🎯 I can help you with:
+• Playing songs: "Play [song name]"
+• Artist play: "Play songs by [artist]"
+• Queue: "Add [song] to queue"
+• Favorites: "Favorite this song"
+• Navigation: "Next song", "Previous song"
+• Volume: "Volume up/down", "Mute"
+• Playlists: "Switch to [playlist]"
+• Theme: "Switch to dark/light mode"
+• Playback: "Pause", "Resume", "Stop"`;
+    }
+
+    // Greetings
+    if (cmd.includes('hello') || cmd.includes('hi') || cmd.includes('hey')) {
+        return "👋 Hello! How can I help you with your music today?";
+    }
+
+    // Theme toggle
+    if (cmd.includes('dark mode') || cmd.includes('light mode') || cmd.includes('theme')) {
+        this.toggleTheme();
+        const isDark = document.body.classList.contains('dark');
+        return `🎨 Switched to ${isDark ? 'dark' : 'light'} mode`;
+    }
+
+    // Playlist control
+    if (cmd.includes('playlist') || cmd.includes('category') || cmd.includes('switch to')) {
+        const playlist = this.findPlaylistFromCommand(cmd);
+        if (playlist) {
+            this.switchPlaylist(playlist);
+            return `📁 Switched to ${this.getPlaylistDisplayName(playlist)} playlist`;
+        }
+    }
+
+    // Add to favorites
+    if (cmd.includes('favorite this') || cmd.includes('like this')) {
+        const song = this.filteredSongs[this.currentIndex];
+        if (!song) return "❌ No active song to favorite.";
+        const isFavorite = this.favorites.some(fav => fav.id === song.id);
+        if (isFavorite) {
+            return `💖 ${song.title} is already in favorites.`;
+        }
+        this.toggleFavorite(song);
+        return `💖 Added ${song.title} to favorites.`;
+    }
+
+    // Add to queue command
+    if (cmd.includes('add') && cmd.includes('queue')) {
+        const term = cmd.replace('add', '').replace('to queue', '').replace('queue', '').trim();
+        const song = this.findBestSongMatch(term);
+        if (!song) return `❌ I couldn't find "${term}" in your library.`;
+        if (this.queue.some(s => s.id === song.id)) {
+            return `📋 ${song.title} is already in queue.`;
+        }
+        this.queue.push(song);
+        if (this.queueOpen) this.renderQueue();
+        return `📋 Added ${song.title} to queue.`;
+    }
+
+    // Search & Play
     if (cmd.includes('play')) {
+        if (cmd.includes('by ')) {
+            const artistTerm = cmd.split('by ')[1]?.trim();
+            if (!artistTerm) return "❌ Tell me the artist name, like: play songs by Arijit.";
+            const artistSong = this.songs.find(song => this.normalizeCommand(song.artist).includes(artistTerm));
+            if (!artistSong) return `❌ I couldn't find songs by "${artistTerm}".`;
+            this.playMatchedSong(artistSong);
+            return `🎵 Playing songs by ${artistSong.artist}. Starting with ${artistSong.title}.`;
+        }
+
         const term = cmd.replace('play', '').trim();
         if (!term) {
             this.togglePlay();
             return "Toggling playback.";
         }
-        
-        // Search in your songs array
-        const found = this.songs.find(s => 
-            s.title.toLowerCase().includes(term) || 
-            s.artist.toLowerCase().includes(term)
-        );
+        const found = this.findBestSongMatch(term);
 
         if (found) {
-            const index = this.filteredSongs.findIndex(s => s.id === found.id);
-            if (index !== -1) {
-                this.playSong(index);
-                return `🎵 Now playing <strong>${found.title}</strong> by <em>${found.artist}</em>`;
-            } else {
-                this.filteredSongs = [found, ...this.filteredSongs];
-                this.playSong(0);
-                return `🎵 Playing <strong>${found.title}</strong> by <em>${found.artist}</em>`;
-            }
+            this.playMatchedSong(found);
+            return `🎵 Now playing ${found.title} by ${found.artist}`;
         }
         return `❌ I couldn't find "${term}" in your library.`;
     }
 
-    // 2. Theme toggle
-    if (cmd.includes('dark mode') || cmd.includes('light mode') || cmd.includes('theme')) {
-        this.toggleTheme();
-        const isDark = document.body.classList.contains('dark');
-        return `🎨 Switched to <strong>${isDark ? 'dark' : 'light'}</strong> mode`;
-    }
-
-    // 3. Navigation
+    // Navigation
     if (cmd.includes('next') || cmd.includes('next song')) {
         this.nextSong();
         const currentSong = this.filteredSongs[this.currentIndex];
-        return `⏭️ Playing next track: <strong>${currentSong.title}</strong>`;
+        return `⏭️ Playing next track: ${currentSong.title}`;
     }
 
     if (cmd.includes('previous') || cmd.includes('prev') || cmd.includes('back')) {
         this.prevSong();
         const currentSong = this.filteredSongs[this.currentIndex];
-        return `⏮️ Playing previous track: <strong>${currentSong.title}</strong>`;
+        return `⏮️ Playing previous track: ${currentSong.title}`;
     }
 
     if (cmd.includes('pause') || cmd.includes('stop')) {
@@ -383,21 +494,22 @@ processAICommand(input) {
         return "▶️ Music is already playing";
     }
 
-    // 4. Volume control
+    // Volume control
     if (cmd.includes('volume')) {
         if (cmd.includes('up') || cmd.includes('increase')) {
             this.volume = Math.min(1, this.volume + 0.2);
             this.audio.volume = this.volume;
             this.updateVolumeUI();
-            return `🔊 Volume increased to <strong>${Math.round(this.volume * 100)}%</strong>`;
+            return `🔊 Volume increased to ${Math.round(this.volume * 100)}%`;
         }
         if (cmd.includes('down') || cmd.includes('decrease')) {
             this.volume = Math.max(0, this.volume - 0.2);
             this.audio.volume = this.volume;
             this.updateVolumeUI();
-            return `🔉 Volume decreased to <strong>${Math.round(this.volume * 100)}%</strong>`;
+            return `🔉 Volume decreased to ${Math.round(this.volume * 100)}%`;
         }
         if (cmd.includes('mute')) {
+            this.volume = 0;
             this.audio.volume = 0;
             this.updateVolumeUI();
             return "🔇 Volume muted";
@@ -408,33 +520,6 @@ processAICommand(input) {
             this.updateVolumeUI();
             return "🔊 Volume set to maximum";
         }
-    }
-
-    // 5. Playlist control
-    if (cmd.includes('playlist') || cmd.includes('category')) {
-        const playlists = ['trending', 'english', 'hindi', 'bangla', 'nasheed', 'new'];
-        for (const playlist of playlists) {
-            if (cmd.includes(playlist)) {
-                this.switchPlaylist(playlist);
-                return `📁 Switched to <strong>${this.getPlaylistDisplayName(playlist)}</strong> playlist`;
-            }
-        }
-    }
-
-    // 6. Help command
-    if (cmd.includes('help') || cmd.includes('what can you do')) {
-        return `🎯 <strong>I can help you with:</strong>\n
-• <strong>Playing songs:</strong> "Play [song name]"\n
-• <strong>Navigation:</strong> "Next song", "Previous song"\n
-• <strong>Volume control:</strong> "Volume up/down", "Mute"\n
-• <strong>Playlists:</strong> "Switch to [playlist name]"\n
-• <strong>Theme:</strong> "Switch to dark/light mode"\n
-• <strong>Playback:</strong> "Pause", "Resume", "Stop"`;
-    }
-
-    // 7. Greetings
-    if (cmd.includes('hello') || cmd.includes('hi') || cmd.includes('hey')) {
-        return "👋 Hello! How can I help you with your music today?";
     }
 
     return "🤔 I'm not sure how to do that. Try saying:\n• 'Play [Song Name]'\n• 'Switch to Dark Mode'\n• 'Volume up'\n• 'Next song'\n\nOr ask for 'help' to see all commands.";
