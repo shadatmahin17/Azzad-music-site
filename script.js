@@ -13,6 +13,7 @@ class MusicPlayer {
         this.touchStartX = 0;
         this.touchEndX = 0;
         this.currentPlaylist = 'trending';
+        this.activeSongList = [];
         this.favorites = JSON.parse(localStorage.getItem('azzad-favorites') || '[]');
         this.recentlyPlayed = JSON.parse(localStorage.getItem('azzad-recently-played') || '[]');
         this.playlists = JSON.parse(localStorage.getItem('azzad-playlists') || '[]');
@@ -66,6 +67,15 @@ class MusicPlayer {
             contactPage: document.getElementById('contactPage'),
             searchBar: document.getElementById('searchBar'),
             searchContainer: document.getElementById('searchContainer'),
+            heroSection: document.getElementById('heroSection'),
+            aiFeatureCard: document.getElementById('aiFeatureCard'),
+            startListeningBtn: document.getElementById('startListeningBtn'),
+            exploreTrendingBtn: document.getElementById('exploreTrendingBtn'),
+            heroFeaturedPlay: document.getElementById('heroFeaturedPlay'),
+            generatePlaylistBtn: document.getElementById('generatePlaylistBtn'),
+            heroFeaturedTitle: document.getElementById('heroFeaturedTitle'),
+            heroFeaturedArtist: document.getElementById('heroFeaturedArtist'),
+            heroFeaturedImage: document.getElementById('heroFeaturedImage'),
             searchFilters: document.getElementById('searchFilters'),
             audioController: document.getElementById('audioController'),
             currentTime: document.getElementById('currentTime'),
@@ -408,6 +418,15 @@ processAICommand(input) {
 
     // Playlist control
     if (cmd.includes('playlist') || cmd.includes('category') || cmd.includes('switch to')) {
+        if (cmd.includes('generate') || cmd.includes('ai playlist')) {
+            const moodFromCommand = cmd
+                .replace('generate', '')
+                .replace('ai playlist', '')
+                .replace('playlist', '')
+                .trim();
+            this.generateAIMoodPlaylist(true, moodFromCommand || null);
+            return "🤖 Generating an AI playlist for you now.";
+        }
         const playlist = this.findPlaylistFromCommand(cmd);
         if (playlist) {
             this.switchPlaylist(playlist);
@@ -524,6 +543,84 @@ processAICommand(input) {
 
     return "🤔 I'm not sure how to do that. Try saying:\n• 'Play [Song Name]'\n• 'Switch to Dark Mode'\n• 'Volume up'\n• 'Next song'\n\nOr ask for 'help' to see all commands.";
 }
+
+async generateAIMoodPlaylist(fromAIChat = false, moodInput = null) {
+    const mood = moodInput || prompt('Tell Azaad AI your mood (e.g. chill, focus, workout, romantic):', 'chill');
+    if (!mood) return;
+
+    try {
+        this.showToast(`Generating "${mood}" playlist...`);
+        const response = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(mood + ' music')}&entity=song&limit=12`);
+        const data = await response.json();
+        const tracks = (data.results || [])
+            .filter(item => item.previewUrl)
+            .map((item, index) => ({
+                id: Date.now() + index,
+                title: item.trackName,
+                artist: item.artistName,
+                image: item.artworkUrl100 || 'Img/Audio-controller.png',
+                audio: item.previewUrl,
+                genre: item.primaryGenreName || 'ai',
+                duration: Math.floor((item.trackTimeMillis || 180000) / 1000),
+                trending: false,
+                playlist: ['ai-picks']
+            }));
+
+        if (tracks.length === 0) {
+            this.createFallbackMoodPlaylist(mood, fromAIChat);
+            return;
+        }
+
+        const aiPlaylist = {
+            id: Date.now(),
+            name: `Azaad AI • ${mood}`,
+            songs: tracks,
+            image: tracks[0].image
+        };
+
+        this.playlists.unshift(aiPlaylist);
+        this.savePlaylists();
+        this.playSong(0, tracks);
+        this.showToast(`Azaad AI playlist ready: ${tracks.length} songs`);
+
+        if (fromAIChat) {
+            this.addChatMessage('ai', `✅ Created "${aiPlaylist.name}" with ${tracks.length} songs and started playback.`);
+        }
+    } catch (error) {
+        console.error('AI playlist generation failed:', error);
+        this.createFallbackMoodPlaylist(mood, fromAIChat);
+    }
+}
+
+createFallbackMoodPlaylist(mood, fromAIChat = false) {
+    const moodKeywords = mood.toLowerCase().split(/\s+/).filter(Boolean);
+    const localTracks = this.songs
+        .filter(song => {
+            const haystack = `${song.title} ${song.artist} ${song.genre}`.toLowerCase();
+            return moodKeywords.some(keyword => haystack.includes(keyword));
+        })
+        .slice(0, 12);
+
+    const fallbackTracks = localTracks.length > 0
+        ? localTracks
+        : this.songs.slice(0, 12);
+
+    const aiPlaylist = {
+        id: Date.now(),
+        name: `Azaad AI • ${mood} (Local Mix)`,
+        songs: fallbackTracks,
+        image: fallbackTracks[0]?.image || 'Img/Audio-controller.png'
+    };
+
+    this.playlists.unshift(aiPlaylist);
+    this.savePlaylists();
+    this.playSong(0, fallbackTracks);
+    this.showToast(`AI local mix ready: ${fallbackTracks.length} songs`);
+
+    if (fromAIChat) {
+        this.addChatMessage('ai', `✅ API unavailable, created local mood mix "${aiPlaylist.name}" with ${fallbackTracks.length} songs.`);
+    }
+}
     
     initClock() {
         // Update clock immediately
@@ -613,6 +710,21 @@ processAICommand(input) {
         
         // Theme toggle
         this.elements.themeToggle.addEventListener('click', () => this.toggleTheme());
+
+        if (this.elements.startListeningBtn) {
+            this.elements.startListeningBtn.addEventListener('click', () => this.playSong(0));
+        }
+        if (this.elements.exploreTrendingBtn) {
+            this.elements.exploreTrendingBtn.addEventListener('click', () => this.switchPlaylist('trending'));
+        }
+        if (this.elements.heroFeaturedPlay) {
+            this.elements.heroFeaturedPlay.addEventListener('click', () => this.playSong(0));
+        }
+        if (this.elements.generatePlaylistBtn) {
+            this.elements.generatePlaylistBtn.addEventListener('click', () => {
+                this.generateAIMoodPlaylist();
+            });
+        }
         
         // Sidebar toggle
         this.elements.menuToggle.addEventListener('click', () => {
@@ -878,6 +990,8 @@ processAICommand(input) {
         });
         this.elements.homePage.style.display = 'none';
         this.elements.searchContainer.style.display = 'none';
+        if (this.elements.heroSection) this.elements.heroSection.style.display = 'none';
+        if (this.elements.aiFeatureCard) this.elements.aiFeatureCard.style.display = 'none';
         
         // Show selected page
         switch(page) {
@@ -885,6 +999,8 @@ processAICommand(input) {
             default:
                 this.elements.homePage.style.display = 'block';
                 this.elements.searchContainer.style.display = 'block';
+                if (this.elements.heroSection) this.elements.heroSection.style.display = 'grid';
+                if (this.elements.aiFeatureCard) this.elements.aiFeatureCard.style.display = 'flex';
                 this.elements.audioController.classList.remove('hidden');
                 break;
             case 'albums':
@@ -2030,10 +2146,34 @@ processAICommand(input) {
         this.extractAlbumsAndArtists();
         
         this.filteredSongs = this.getSongsByPlaylist(this.currentPlaylist);
+        this.activeSongList = [...this.filteredSongs];
         this.renderSongs();
+        this.initFeaturedSong();
         
         // Initialize queue with current playlist
         this.queue = [...this.filteredSongs];
+    }
+
+    initFeaturedSong() {
+        const featured = this.filteredSongs[0];
+        if (!featured) return;
+
+        this.currentIndex = 0;
+        this.audio = new Audio(featured.audio);
+        this.audio.volume = this.volume;
+        this.bindAudioEvents();
+
+        this.elements.audioController.classList.remove('hidden');
+        this.elements.currentSong.textContent = featured.title;
+        this.elements.currentArtist.textContent = featured.artist;
+        this.elements.songCover.src = featured.image;
+        this.elements.songCover.alt = `${featured.title} cover`;
+        this.elements.totalTime.textContent = this.formatTime(featured.duration);
+        this.elements.currentTime.textContent = '0:00';
+
+        if (this.elements.heroFeaturedTitle) this.elements.heroFeaturedTitle.textContent = featured.title;
+        if (this.elements.heroFeaturedArtist) this.elements.heroFeaturedArtist.textContent = featured.artist;
+        if (this.elements.heroFeaturedImage) this.elements.heroFeaturedImage.src = featured.image;
     }
     
     extractAlbumsAndArtists() {
@@ -2092,6 +2232,7 @@ processAICommand(input) {
         // Update current playlist and filtered songs
         this.currentPlaylist = playlistName;
         this.filteredSongs = this.getSongsByPlaylist(playlistName);
+        this.activeSongList = [...this.filteredSongs];
         
         // Update queue with new playlist
         this.queue = [...this.filteredSongs];
@@ -2140,6 +2281,7 @@ processAICommand(input) {
                 );
             }
         }
+        this.activeSongList = [...this.filteredSongs];
         this.renderSongs();
     }
     
@@ -2166,12 +2308,12 @@ processAICommand(input) {
         
         // Add songs to the active playlist
         this.filteredSongs.forEach((song, index) => {
-            const card = this.createSongCard(song, index);
+            const card = this.createSongCard(song, index, this.filteredSongs);
             container.appendChild(card);
         });
     }
     
-    createSongCard(song, index) {
+    createSongCard(song, index, songList = this.filteredSongs) {
         const card = document.createElement('div');
         card.className = 'card';
         card.dataset.id = song.id;
@@ -2216,7 +2358,7 @@ processAICommand(input) {
         card.addEventListener('click', (e) => {
             // Don't trigger play if clicking the favorite icon
             if (!e.target.closest('.favorite-btn')) {
-                this.playSong(index);
+                this.playSong(index, songList);
             }
         });
         
@@ -2307,11 +2449,7 @@ processAICommand(input) {
             `;
             
             card.addEventListener('click', () => {
-                // Play the first song in the album
-                const firstSongIndex = this.songs.findIndex(s => s.id === album.songs[0].id);
-                if (firstSongIndex !== -1) {
-                    this.playSong(firstSongIndex);
-                }
+                this.playSong(0, album.songs);
             });
             
             container.appendChild(card);
@@ -2336,7 +2474,7 @@ processAICommand(input) {
         }
         
         this.favorites.forEach((song, index) => {
-            const card = this.createSongCard(song, index);
+            const card = this.createSongCard(song, index, this.favorites);
             container.appendChild(card);
         });
     }
@@ -2359,7 +2497,7 @@ processAICommand(input) {
         }
         
         this.recentlyPlayed.forEach((song, index) => {
-            const card = this.createSongCard(song, index);
+            const card = this.createSongCard(song, index, this.recentlyPlayed);
             container.appendChild(card);
         });
     }
@@ -2407,11 +2545,7 @@ processAICommand(input) {
             `;
             
             card.addEventListener('click', () => {
-                // Play the first song by the artist
-                const firstSongIndex = this.songs.findIndex(s => s.id === artist.songs[0].id);
-                if (firstSongIndex !== -1) {
-                    this.playSong(firstSongIndex);
-                }
+                this.playSong(0, artist.songs);
             });
             
             container.appendChild(card);
@@ -2441,7 +2575,7 @@ processAICommand(input) {
             
             card.innerHTML = `
                 <div class="card-image-container">
-                    <img src="${playlist.image || 'songs/audio-controller.png'}" alt="${playlist.name}" class="card-image">
+                    <img src="${playlist.image || 'Img/Audio-controller.png'}" alt="${playlist.name}" class="card-image">
                     <div class="card-overlay">
                         <div class="play-overlay">
                             <i class="fas fa-play"></i>
@@ -2456,15 +2590,39 @@ processAICommand(input) {
                     <button class="card-button"><i class="fas fa-play"></i> Play</button>
                     <div class="card-stats">
                         <span class="card-duration"><i class="fas fa-music"></i> ${playlist.songs.length} songs</span>
+                        <span class="card-likes">
+                            <button class="mini-action rename-playlist" data-id="${playlist.id}" title="Rename playlist"><i class="fas fa-pen"></i></button>
+                            <button class="mini-action add-current-song" data-id="${playlist.id}" title="Add current song"><i class="fas fa-plus"></i></button>
+                            <button class="mini-action remove-last-song" data-id="${playlist.id}" title="Remove last song"><i class="fas fa-minus"></i></button>
+                            <button class="mini-action delete-playlist" data-id="${playlist.id}" title="Delete playlist"><i class="fas fa-trash"></i></button>
+                        </span>
                     </div>
                 </div>
             `;
             
             card.addEventListener('click', () => {
-                // Set queue to playlist songs and play first song
-                this.queue = [...playlist.songs];
-                this.currentQueueIndex = 0;
-                this.playSong(0);
+                if (playlist.songs.length === 0) {
+                    this.showToast('Playlist is empty. Add songs first.');
+                    return;
+                }
+                this.playSong(0, playlist.songs);
+            });
+
+            card.querySelector('.rename-playlist').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.renamePlaylist(playlist.id);
+            });
+            card.querySelector('.add-current-song').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.addCurrentSongToPlaylist(playlist.id);
+            });
+            card.querySelector('.remove-last-song').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.removeLastSongFromPlaylist(playlist.id);
+            });
+            card.querySelector('.delete-playlist').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.deletePlaylist(playlist.id);
             });
             
             container.appendChild(card);
@@ -2481,10 +2639,69 @@ processAICommand(input) {
                 image: null
             };
             this.playlists.push(newPlaylist);
-            localStorage.setItem('azzad-playlists', JSON.stringify(this.playlists));
+            this.savePlaylists();
             this.renderPlaylists();
             this.showToast(`Playlist "${name}" created`);
         }
+    }
+
+    savePlaylists() {
+        localStorage.setItem('azzad-playlists', JSON.stringify(this.playlists));
+    }
+
+    renamePlaylist(playlistId) {
+        const playlist = this.playlists.find(p => p.id === playlistId);
+        if (!playlist) return;
+        const newName = prompt('Rename playlist:', playlist.name);
+        if (!newName || !newName.trim()) return;
+        playlist.name = newName.trim();
+        this.savePlaylists();
+        this.renderPlaylists();
+        this.showToast('Playlist renamed');
+    }
+
+    addCurrentSongToPlaylist(playlistId) {
+        const playlist = this.playlists.find(p => p.id === playlistId);
+        const currentSong = this.activeSongList[this.currentIndex];
+        if (!playlist) return;
+        if (!currentSong) {
+            this.showToast('No active song to add');
+            return;
+        }
+        if (playlist.songs.some(song => song.id === currentSong.id)) {
+            this.showToast('Song already exists in playlist');
+            return;
+        }
+        playlist.songs.push(currentSong);
+        if (!playlist.image) playlist.image = currentSong.image;
+        this.savePlaylists();
+        this.renderPlaylists();
+        this.showToast(`Added "${currentSong.title}"`);
+    }
+
+    removeLastSongFromPlaylist(playlistId) {
+        const playlist = this.playlists.find(p => p.id === playlistId);
+        if (!playlist) return;
+        if (playlist.songs.length === 0) {
+            this.showToast('Playlist is already empty');
+            return;
+        }
+        const removed = playlist.songs.pop();
+        if (playlist.songs.length === 0) playlist.image = null;
+        this.savePlaylists();
+        this.renderPlaylists();
+        this.showToast(`Removed "${removed.title}"`);
+    }
+
+    deletePlaylist(playlistId) {
+        const playlist = this.playlists.find(p => p.id === playlistId);
+        if (!playlist) return;
+        const confirmed = confirm(`Delete playlist "${playlist.name}"?`);
+        if (!confirmed) return;
+        this.playlists = this.playlists.filter(p => p.id !== playlistId);
+        this.savePlaylists();
+        this.renderPlaylists();
+        this.showToast('Playlist deleted');
     }
     
     renderQueue() {
@@ -2518,7 +2735,7 @@ processAICommand(input) {
             
             queueItem.addEventListener('click', () => {
                 this.currentQueueIndex = index;
-                this.playSong(index);
+                this.playSong(index, this.queue);
                 this.renderQueue();
             });
             
@@ -2526,12 +2743,14 @@ processAICommand(input) {
         });
     }
     
-    playSong(index) {
+    playSong(index, songList = null) {
         try {
-            if (index < 0 || index >= this.filteredSongs.length) return;
+            const sourceSongs = songList || this.activeSongList || this.filteredSongs;
+            if (index < 0 || index >= sourceSongs.length) return;
             
             this.currentIndex = index;
-            const song = this.filteredSongs[this.currentIndex];
+            this.activeSongList = sourceSongs;
+            const song = this.activeSongList[this.currentIndex];
             
             // Pause current audio first
             this.audio.pause();
@@ -2571,6 +2790,7 @@ processAICommand(input) {
             this.saveToRecentlyPlayed(song);
             
             // Update queue index
+            this.queue = [...this.activeSongList];
             this.currentQueueIndex = this.queue.findIndex(s => s.id === song.id);
             if (this.queueOpen) {
                 this.renderQueue();
@@ -2612,7 +2832,7 @@ processAICommand(input) {
                 this.audio.currentTime = 0;
             }
             
-            if (!this.audio.src && this.filteredSongs.length > 0) {
+            if (!this.audio.src && this.activeSongList.length > 0) {
                 this.playSong(0);
             } else {
                 this.audio.play().catch(error => {
@@ -2657,13 +2877,13 @@ processAICommand(input) {
     
     prevSong() {
         let newIndex = this.currentIndex - 1;
-        if (newIndex < 0) newIndex = this.filteredSongs.length - 1;
+        if (newIndex < 0) newIndex = this.activeSongList.length - 1;
         this.playSong(newIndex);
     }
     
     nextSong() {
         let newIndex = this.currentIndex + 1;
-        if (newIndex >= this.filteredSongs.length) newIndex = 0;
+        if (newIndex >= this.activeSongList.length) newIndex = 0;
         this.playSong(newIndex);
     }
     
