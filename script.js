@@ -2360,6 +2360,7 @@ createFallbackMoodPlaylist(mood, fromAIChat = false) {
                 <div class="card-stats">
                     <span class="card-duration"><i class="far fa-clock"></i> ${this.formatTime(song.duration)}</span>
                     <span class="card-likes"><i class="${favoriteIcon} fa-heart" data-id="${song.id}"></i> ${Math.floor(Math.random() * 1000) + 100}</span>
+                    <button class="mini-action add-to-playlist-btn" title="Add to playlist"><i class="fas fa-plus-circle"></i></button>
                 </div>
             </div>
         `;
@@ -2375,6 +2376,7 @@ createFallbackMoodPlaylist(mood, fromAIChat = false) {
         const favoriteBtn = card.querySelector('.favorite-btn');
         const favoriteIconEl = card.querySelector('.favorite-btn i');
         const likesIcon = card.querySelector('.card-likes i');
+        const addToPlaylistBtn = card.querySelector('.add-to-playlist-btn');
         
         favoriteBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -2394,8 +2396,68 @@ createFallbackMoodPlaylist(mood, fromAIChat = false) {
                 favoriteBtn.style.transform = 'scale(1)';
             }, 200);
         });
+
+        addToPlaylistBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.promptPlaylistForSong(song);
+        });
         
         return card;
+    }
+
+    promptPlaylistForSong(song) {
+        if (!song) return;
+
+        let chosenPlaylist = null;
+        if (this.playlists.length > 0) {
+            const options = this.playlists.map((playlist, index) => `${index + 1}. ${playlist.name}`).join('\n');
+            const selected = prompt(`Add "${song.title}" to which playlist?\n\n${options}\n\nType number or a new playlist name:`);
+            if (!selected || !selected.trim()) return;
+
+            const numeric = Number(selected.trim());
+            if (!Number.isNaN(numeric) && numeric >= 1 && numeric <= this.playlists.length) {
+                chosenPlaylist = this.playlists[numeric - 1];
+            } else {
+                chosenPlaylist = {
+                    id: Date.now(),
+                    name: selected.trim(),
+                    songs: [],
+                    image: null
+                };
+                this.playlists.push(chosenPlaylist);
+            }
+        } else {
+            const playlistName = prompt(`No playlists yet. Name your new playlist for "${song.title}":`, 'My Playlist');
+            if (!playlistName || !playlistName.trim()) return;
+            chosenPlaylist = {
+                id: Date.now(),
+                name: playlistName.trim(),
+                songs: [],
+                image: null
+            };
+            this.playlists.push(chosenPlaylist);
+        }
+
+        this.addSongToPlaylist(song, chosenPlaylist.id);
+    }
+
+    addSongToPlaylist(song, playlistId) {
+        const playlist = this.playlists.find(p => p.id === playlistId);
+        if (!playlist || !song) return;
+
+        if (playlist.songs.some(existing => existing.id === song.id)) {
+            this.showToast(`"${song.title}" already in ${playlist.name}`);
+            return;
+        }
+
+        playlist.songs.push(song);
+        if (!playlist.image) playlist.image = song.image;
+        this.savePlaylists();
+        this.showToast(`Added "${song.title}" to ${playlist.name}`);
+
+        if (this.elements.playlistsPage.style.display === 'block') {
+            this.renderPlaylists();
+        }
     }
     
     toggleFavorite(song) {
@@ -2677,15 +2739,8 @@ createFallbackMoodPlaylist(mood, fromAIChat = false) {
             this.showToast('No active song to add');
             return;
         }
-        if (playlist.songs.some(song => song.id === currentSong.id)) {
-            this.showToast('Song already exists in playlist');
-            return;
-        }
-        playlist.songs.push(currentSong);
-        if (!playlist.image) playlist.image = currentSong.image;
-        this.savePlaylists();
+        this.addSongToPlaylist(currentSong, playlistId);
         this.renderPlaylists();
-        this.showToast(`Added "${currentSong.title}"`);
     }
 
     removeLastSongFromPlaylist(playlistId) {
