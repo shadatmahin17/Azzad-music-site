@@ -25,6 +25,7 @@ class MusicPlayer {
         this.initElements();
         this.bindEvents();
         this.loadSongs();
+        this.setHomeChromeVisibility(true);
         this.initTheme();
         this.initVolume();
         this.initClock();
@@ -67,6 +68,8 @@ class MusicPlayer {
             contactPage: document.getElementById('contactPage'),
             searchBar: document.getElementById('searchBar'),
             searchContainer: document.getElementById('searchContainer'),
+            heroSection: document.getElementById('heroSection'),
+            aiFeatureCard: document.getElementById('aiFeatureCard'),
             startListeningBtn: document.getElementById('startListeningBtn'),
             exploreTrendingBtn: document.getElementById('exploreTrendingBtn'),
             heroFeaturedPlay: document.getElementById('heroFeaturedPlay'),
@@ -720,8 +723,7 @@ createFallbackMoodPlaylist(mood, fromAIChat = false) {
         }
         if (this.elements.generatePlaylistBtn) {
             this.elements.generatePlaylistBtn.addEventListener('click', () => {
-                this.toggleAIChat(true);
-                this.showToast('Azaad AI is ready. Try: "Play songs by Arijit"');
+                this.generateAIMoodPlaylist();
             });
         }
         
@@ -990,7 +992,7 @@ createFallbackMoodPlaylist(mood, fromAIChat = false) {
         });
         this.elements.homePage.style.display = 'none';
         this.elements.searchContainer.style.display = 'none';
-        this.elements.playlistNav.style.display = 'none';
+        this.setHomeChromeVisibility(false);
         
         // Show selected page
         switch(page) {
@@ -998,7 +1000,7 @@ createFallbackMoodPlaylist(mood, fromAIChat = false) {
             default:
                 this.elements.homePage.style.display = 'block';
                 this.elements.searchContainer.style.display = 'block';
-                this.elements.playlistNav.style.display = 'flex';
+                this.setHomeChromeVisibility(true);
                 this.elements.audioController.classList.remove('hidden');
                 break;
             case 'albums':
@@ -1027,6 +1029,15 @@ createFallbackMoodPlaylist(mood, fromAIChat = false) {
             case 'contact':
                 this.elements.contactPage.style.display = 'block';
                 break;
+        }
+    }
+
+    setHomeChromeVisibility(isVisible) {
+        if (this.elements.heroSection) {
+            this.elements.heroSection.style.display = isVisible ? 'grid' : 'none';
+        }
+        if (this.elements.aiFeatureCard) {
+            this.elements.aiFeatureCard.style.display = isVisible ? 'flex' : 'none';
         }
     }
     
