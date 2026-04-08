@@ -1,15 +1,15 @@
 :root {
-    --primary: #00BFA5;        
-    --primary-dark: #00A38D;    
-    --accent: #6C5CE7;          
-    --text: #2D3436;          
-    --text-light: #636E72;      
-    --bg: #F5F6FA;              
-    --card-bg: #FFFFFF;         
-    --sidebar-bg: #FFFFFF;
-    --player-bg: #FFFFFF;
-    --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    --radius: 12px;
+    --primary: #00D1FF;
+    --primary-dark: #00A3D4;
+    --accent: #6C63FF;
+    --text: #F5F7FF;
+    --text-light: #A3B0CF;
+    --bg: #0B0F19;
+    --card-bg: #121826;
+    --sidebar-bg: #121826;
+    --player-bg: #121826;
+    --shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+    --radius: 18px;
     --transition: all 0.3s ease;
 }
 
@@ -40,13 +40,58 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    background-image: url('Img/Background.jpg');
+    background-image: linear-gradient(135deg, rgba(11, 15, 25, 0.9), rgba(18, 24, 38, 0.75)), url('Img/Background.jpg');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
     background-repeat: no-repeat;
     background-blend-mode: overlay;
     overflow-x: hidden;
+}
+
+.hero-section {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 1.5rem;
+    margin: 1rem 0 2rem;
+    padding: 1.5rem;
+    border-radius: 20px;
+    background: radial-gradient(circle at top right, rgba(108, 99, 255, 0.35), rgba(0, 209, 255, 0.15), rgba(11, 15, 25, 0.92));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: var(--shadow);
+}
+
+.hero-kicker { color: var(--primary); font-weight: 700; margin-bottom: 0.65rem; }
+.hero-section h1 { font-size: clamp(1.75rem, 4vw, 3rem); margin-bottom: 0.85rem; }
+.hero-subtitle { color: var(--text-light); max-width: 560px; line-height: 1.6; }
+.hero-actions { display: flex; gap: 0.75rem; margin-top: 1.25rem; flex-wrap: wrap; }
+.hero-btn { border: none; border-radius: 999px; padding: 0.7rem 1.2rem; font-weight: 700; cursor: pointer; transition: var(--transition); }
+.hero-btn.primary { background: linear-gradient(135deg, var(--primary), var(--accent)); color: #fff; }
+.hero-btn.secondary { background: rgba(255,255,255,0.05); color: var(--text); border: 1px solid rgba(255,255,255,0.12); }
+.hero-btn:hover { transform: translateY(-2px) scale(1.05); }
+
+.hero-featured-card {
+    background: rgba(18, 24, 38, 0.92);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 18px;
+    padding: 1rem;
+}
+.hero-featured-card img { width: 100%; height: 180px; object-fit: cover; border-radius: 14px; margin: 0.65rem 0; }
+.hero-featured-label { font-size: 0.8rem; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; }
+.hero-featured-meta h3 { margin-bottom: 0.35rem; }
+.hero-featured-meta p { color: var(--text-light); margin-bottom: 0.8rem; }
+.hero-featured-play { border: 0; padding: 0.55rem 0.9rem; border-radius: 999px; background: var(--accent); color: white; cursor: pointer; }
+
+.ai-feature-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    background: rgba(18,24,38,0.94);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.2rem;
 }
 
 /* Loading Screen */
@@ -720,7 +765,7 @@ header {
 
 /* Card styling for horizontal layout */
 .card {
-    background-color: var(--transition);
+    background-color: var(--card-bg);
     border-radius: var(--radius);
     overflow: hidden;
     transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -1012,6 +1057,20 @@ header {
 .card-likes i {
     color: var(--accent);
     font-size: 0.7rem;
+}
+
+.mini-action {
+    background: transparent;
+    border: none;
+    color: var(--text-light);
+    cursor: pointer;
+    margin-left: 0.2rem;
+    transition: var(--transition);
+}
+
+.mini-action:hover {
+    color: var(--primary);
+    transform: scale(1.08);
 }
 
 /* Centered empty state */
@@ -1486,6 +1545,7 @@ footer {
     padding: 2rem 1.5rem;
     margin-top: auto;
 }
+.tech-stack, .built-by { color: var(--text-light); text-align: center; margin-top: 0.5rem; font-size: 0.9rem; }
 
 .footer-content {
     max-width: 1200px;
@@ -1645,6 +1705,8 @@ footer {
 
 /* Mobile Layout (768px and below) */
 @media (max-width: 768px) {
+    .hero-section { grid-template-columns: 1fr; padding: 1rem; }
+    .ai-feature-card { flex-direction: column; align-items: flex-start; }
     .container {
         gap: 1rem;
     }
@@ -2680,5 +2742,115 @@ footer {
 
     .about-sections {
         grid-template-columns: 1fr;
+    }
+}
+
+/* Final responsive polish: Desktop / Tablet / Mobile */
+.content {
+    width: min(1400px, 100%);
+    margin: 0 auto;
+    padding-inline: clamp(0.75rem, 2vw, 1.5rem);
+}
+
+.card {
+    min-width: clamp(165px, 18vw, 220px);
+    max-width: clamp(165px, 18vw, 220px);
+}
+
+@media (min-width: 1200px) {
+    .hero-section {
+        grid-template-columns: 1.3fr 0.9fr;
+        padding: 2rem;
+    }
+
+    .audio-controller {
+        padding: 1rem 1.25rem;
+        gap: 1rem;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+    .hero-section {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+        padding: 1.25rem;
+    }
+
+    .playlist-nav {
+        gap: 0.55rem;
+        padding-bottom: 0.35rem;
+    }
+
+    .playlist-tab {
+        padding: 0.6rem 1rem;
+        font-size: 0.88rem;
+    }
+
+    .audio-controller {
+        flex-wrap: wrap;
+        gap: 0.8rem;
+        padding: 0.85rem 1rem;
+    }
+
+    .song-info,
+    .progress-container,
+    .controls,
+    .volume-container {
+        min-width: 100%;
+    }
+}
+
+@media (max-width: 767px) {
+    .content {
+        padding-inline: 0.75rem;
+    }
+
+    header {
+        padding: 0.9rem 0.2rem;
+    }
+
+    .search-container {
+        margin-top: 0.7rem;
+    }
+
+    .hero-section {
+        margin: 0.8rem 0 1rem;
+        padding: 1rem;
+        border-radius: 16px;
+    }
+
+    .hero-actions {
+        width: 100%;
+    }
+
+    .hero-btn {
+        flex: 1;
+        text-align: center;
+    }
+
+    .container {
+        gap: 0.75rem;
+        padding-bottom: 1rem;
+    }
+
+    .card {
+        min-width: 150px;
+        max-width: 150px;
+    }
+
+    .audio-controller {
+        padding: 0.65rem 0.75rem;
+        gap: 0.55rem;
+        border-top-left-radius: 16px;
+        border-top-right-radius: 16px;
+    }
+
+    .song-cover {
+        width: 44px;
+        height: 44px;
+    }
+
+    .progress-time {
+        font-size: 0.72rem;
     }
 }
