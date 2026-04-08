@@ -67,8 +67,6 @@ class MusicPlayer {
             contactPage: document.getElementById('contactPage'),
             searchBar: document.getElementById('searchBar'),
             searchContainer: document.getElementById('searchContainer'),
-            heroSection: document.getElementById('heroSection'),
-            aiFeatureCard: document.getElementById('aiFeatureCard'),
             startListeningBtn: document.getElementById('startListeningBtn'),
             exploreTrendingBtn: document.getElementById('exploreTrendingBtn'),
             heroFeaturedPlay: document.getElementById('heroFeaturedPlay'),
@@ -722,7 +720,8 @@ createFallbackMoodPlaylist(mood, fromAIChat = false) {
         }
         if (this.elements.generatePlaylistBtn) {
             this.elements.generatePlaylistBtn.addEventListener('click', () => {
-                this.generateAIMoodPlaylist();
+                this.toggleAIChat(true);
+                this.showToast('Azaad AI is ready. Try: "Play songs by Arijit"');
             });
         }
         
@@ -789,6 +788,7 @@ createFallbackMoodPlaylist(mood, fromAIChat = false) {
             tab.addEventListener('click', () => {
                 const playlist = tab.dataset.playlist;
                 this.switchPlaylist(playlist);
+                this.showPage('home');
             });
         });
         
@@ -990,8 +990,7 @@ createFallbackMoodPlaylist(mood, fromAIChat = false) {
         });
         this.elements.homePage.style.display = 'none';
         this.elements.searchContainer.style.display = 'none';
-        if (this.elements.heroSection) this.elements.heroSection.style.display = 'none';
-        if (this.elements.aiFeatureCard) this.elements.aiFeatureCard.style.display = 'none';
+        this.elements.playlistNav.style.display = 'none';
         
         // Show selected page
         switch(page) {
@@ -999,8 +998,7 @@ createFallbackMoodPlaylist(mood, fromAIChat = false) {
             default:
                 this.elements.homePage.style.display = 'block';
                 this.elements.searchContainer.style.display = 'block';
-                if (this.elements.heroSection) this.elements.heroSection.style.display = 'grid';
-                if (this.elements.aiFeatureCard) this.elements.aiFeatureCard.style.display = 'flex';
+                this.elements.playlistNav.style.display = 'flex';
                 this.elements.audioController.classList.remove('hidden');
                 break;
             case 'albums':
