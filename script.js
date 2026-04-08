@@ -546,29 +546,51 @@ processAICommand(input) {
 }
 
 async generateAIMoodPlaylist(fromAIChat = false, moodInput = null) {
-    const mood = moodInput || prompt('Tell Azaad AI your mood (e.g. chill, focus, workout, romantic):', 'chill');
+    const mood = moodInput || prompt('Tell Azaad AI your mood (e.g. chill, focus, workout, romantic, energetic, sad, relax):', 'chill');
     if (!mood) return;
 
     try {
-        this.showToast(`Generating "${mood}" playlist...`);
-        const response = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(mood + ' music')}&entity=song&limit=12`);
-        const data = await response.json();
-        const tracks = (data.results || [])
-            .filter(item => item.previewUrl)
-            .map((item, index) => ({
-                id: Date.now() + index,
-                title: item.trackName,
-                artist: item.artistName,
-                image: item.artworkUrl100 || 'Img/Audio-controller.png',
-                audio: item.previewUrl,
-                genre: item.primaryGenreName || 'ai',
-                duration: Math.floor((item.trackTimeMillis || 180000) / 1000),
-                trending: false,
-                playlist: ['ai-picks']
-            }));
+        this.showToast(`🎵 Generating "${mood}" playlist...`);
+        
+        let tracks = [];
+        let source = 'local';
+
+        // Priority 1: Try Last.fm API (your registered app) for better recommendations
+        const lastfmTracks = await this.fetchLastfmMoodTracks(mood);
+        if (lastfmTracks.length > 0) {
+            // Try to match Last.fm recommendations with your local library
+            tracks = this.matchTracksWithLocalLibrary(lastfmTracks);
+            
+            // If local matches found, use them
+            if (tracks.length > 0) {
+                source = 'Last.fm + Local Library';
+            } else {
+                // Priority 2: If no local matches, try Jamendo for full-length tracks
+                const jamendoTracks = await this.fetchJamendoMoodTracks(mood);
+                if (jamendoTracks.length > 0) {
+                    tracks = jamendoTracks;
+                    source = 'Jamendo (Full Tracks)';
+                } else {
+                    // Priority 3: Fallback to local library with mood matching
+                    tracks = this.createFallbackMoodPlaylist(mood, lastfmTracks);
+                    source = 'Your Library';
+                }
+            }
+        } else {
+            // If Last.fm fails, try Jamendo
+            const jamendoTracks = await this.fetchJamendoMoodTracks(mood);
+            if (jamendoTracks.length > 0) {
+                tracks = jamendoTracks;
+                source = 'Jamendo (Full Tracks)';
+            } else {
+                // Ultimate fallback: local library
+                tracks = this.createFallbackMoodPlaylist(mood, []);
+                source = 'Your Library';
+            }
+        }
 
         if (tracks.length === 0) {
-            this.createFallbackMoodPlaylist(mood, fromAIChat);
+            this.showToast('❌ No songs found. Please try a different mood.');
             return;
         }
 
@@ -576,51 +598,161 @@ async generateAIMoodPlaylist(fromAIChat = false, moodInput = null) {
             id: Date.now(),
             name: `Azaad AI • ${mood}`,
             songs: tracks,
-            image: tracks[0].image
+            image: tracks[0].image || 'Img/Audio-controller.png'
         };
 
         this.playlists.unshift(aiPlaylist);
         this.savePlaylists();
         this.playSong(0, tracks);
-        this.showToast(`Azaad AI playlist ready: ${tracks.length} songs`);
+        this.showToast(`✅ Playlist ready: ${tracks.length} songs (${source})`);
 
         if (fromAIChat) {
-            this.addChatMessage('ai', `✅ Created "${aiPlaylist.name}" with ${tracks.length} songs and started playback.`);
+            const sourceEmoji = source.includes('Last.fm') ? '🎵' : source.includes('Jamendo') ? '🌍' : '📚';
+            this.addChatMessage('ai', `✅ Created "${aiPlaylist.name}" with ${tracks.length} songs\n\n${sourceEmoji} Source: ${source}\n\nStarted playback!`);
         }
     } catch (error) {
         console.error('AI playlist generation failed:', error);
-        this.createFallbackMoodPlaylist(mood, fromAIChat);
+        this.showToast('⚠️ Playlist generation failed. Using your library...');
+        // Ultimate fallback
+        const tracks = this.createFallbackMoodPlaylist(moodInput || 'chill', []);
+        if (tracks.length > 0) {
+            this.playSong(0, tracks);
+        }
     }
 }
 
-createFallbackMoodPlaylist(mood, fromAIChat = false) {
-    const moodKeywords = mood.toLowerCase().split(/\s+/).filter(Boolean);
-    const localTracks = this.songs
-        .filter(song => {
-            const haystack = `${song.title} ${song.artist} ${song.genre}`.toLowerCase();
-            return moodKeywords.some(keyword => haystack.includes(keyword));
-        })
-        .slice(0, 12);
+// NEW: Fetch from Last.fm API (your registered app)
+async fetchLastfmMoodTracks(mood) {
+    try {
+        const apiKey = '87007d04e6f965cd3439b871b4789cca'; // Your registered API key
+        const url = `https://ws.audioscrobbler.com/2.0/?method=tag.gettoptracks&tag=${encodeURIComponent(mood)}&api_key=${apiKey}&format=json&limit=50`;
+        
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Last.fm API failed');
+        
+        const data = await response.json();
+        const tracks = data?.tracks?.track || [];
+        
+        // Convert Last.fm data to searchable format
+        return tracks.map(track => ({
+            title: track.name,
+            artist: track.artist?.name || 'Unknown',
+            lastfmName: `${track.name} ${track.artist?.name || ''}`.toLowerCase(),
+            reach: parseInt(track.reach) || 0, // Popularity score
+            url: track.url
+        }));
+    } catch (error) {
+        console.warn('Last.fm API unavailable:', error);
+        return [];
+    }
+}
 
-    const fallbackTracks = localTracks.length > 0
-        ? localTracks
+// NEW: Match Last.fm recommendations with your local library
+matchTracksWithLocalLibrary(lastfmRecommendations) {
+    const matched = [];
+    
+    lastfmRecommendations.forEach(recommendation => {
+        const localTrack = this.songs.find(song => {
+            const songHay = `${song.title} ${song.artist}`.toLowerCase();
+            const recHay = recommendation.lastfmName;
+            
+            // Exact or close match
+            return songHay.includes(recommendation.title.toLowerCase()) ||
+                   songHay.includes(recommendation.artist.toLowerCase()) ||
+                   recHay.includes(song.title.toLowerCase()) ||
+                   recHay.includes(song.artist.toLowerCase());
+        });
+        
+        if (localTrack && !matched.find(m => m.id === localTrack.id)) {
+            matched.push(localTrack);
+        }
+    });
+    
+    return matched.slice(0, 12);
+}
+
+// NEW: Fetch from Jamendo API (fallback for full-length tracks)
+async fetchJamendoMoodTracks(mood) {
+    try {
+        const clientId = '0ae88f32'; // Public client ID
+        const url = `https://api.jamendo.com/v3.0/tracks?client_id=${clientId}&search=${encodeURIComponent(mood)}&limit=12&format=json`;
+        
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Jamendo API failed');
+        
+        const data = await response.json();
+        return (data.results || [])
+            .filter(item => item.audio && item.audiodownload)
+            .slice(0, 12)
+            .map((item, index) => ({
+                id: 'jamendo-' + item.id,
+                title: item.name || 'Unknown',
+                artist: item.artist_name || 'Unknown Artist',
+                image: item.image || 'Img/Audio-controller.png',
+                audio: item.audio,
+                genre: (item.tags && item.tags[0]) || mood,
+                duration: Math.floor(item.duration || 180),
+                trending: false,
+                playlist: ['ai-picks', 'jamendo'],
+                source: 'Jamendo'
+            }));
+    } catch (error) {
+        console.warn('Jamendo API unavailable:', error);
+        return [];
+    }
+}
+
+// IMPROVED: Better mood matching with weighted scoring
+createFallbackMoodPlaylist(mood, lastfmHints = []) {
+    const moodKeywords = mood.toLowerCase().split(/\s+/).filter(Boolean);
+    const moodGenreMap = {
+        'chill': ['pop', 'electronic', 'indie'],
+        'energetic': ['rock', 'pop', 'electronic'],
+        'sad': ['hindi', 'pop'],
+        'workout': ['electronic', 'pop'],
+        'romantic': ['hindi', 'pop'],
+        'relax': ['pop', 'electronic'],
+        'focus': ['electronic', 'instrumental']
+    };
+    
+    const genresForMood = moodGenreMap[mood.toLowerCase()] || [];
+    
+    const weightedTracks = this.songs
+        .map(song => {
+            let score = 0;
+
+            // Keyword matching in title
+            moodKeywords.forEach(keyword => {
+                if (song.title.toLowerCase().includes(keyword)) score += 5;
+            });
+
+            // Genre matching
+            if (genresForMood.some(g => song.genre.toLowerCase().includes(g))) {
+                score += 4;
+            }
+
+            // Last.fm hints matching
+            if (lastfmHints.length > 0) {
+                const hint = lastfmHints.find(h => 
+                    h.lastfmName?.includes(song.title.toLowerCase()) ||
+                    h.lastfmName?.includes(song.artist.toLowerCase())
+                );
+                if (hint) score += 10;
+            }
+
+            // Trending songs get slight boost
+            if (song.trending) score += 2;
+
+            return { song, score };
+        })
+        .filter(item => item.score > 0)
+        .sort((a, b) => b.score - a.score);
+
+    const localTracks = weightedTracks.length > 0 
+        ? weightedTracks.slice(0, 12).map(item => item.song)
         : this.songs.slice(0, 12);
 
-    const aiPlaylist = {
-        id: Date.now(),
-        name: `Azaad AI • ${mood} (Local Mix)`,
-        songs: fallbackTracks,
-        image: fallbackTracks[0]?.image || 'Img/Audio-controller.png'
-    };
-
-    this.playlists.unshift(aiPlaylist);
-    this.savePlaylists();
-    this.playSong(0, fallbackTracks);
-    this.showToast(`AI local mix ready: ${fallbackTracks.length} songs`);
-
-    if (fromAIChat) {
-        this.addChatMessage('ai', `✅ API unavailable, created local mood mix "${aiPlaylist.name}" with ${fallbackTracks.length} songs.`);
-    }
+    return localTracks;
 }
     
     initClock() {
