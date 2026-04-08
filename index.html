@@ -118,9 +118,9 @@
 <!-- Main Content -->
 <div class="main-content">
     <div class="content">
-        <header>
+        <header class="app-header">
             <div class="header-left">
-                <button class="menu-toggle" id="menuToggle">
+                <button class="menu-toggle" id="menuToggle" type="button" aria-label="Open menu" title="Open menu">
                     <i class="fas fa-bars"></i>
                 </button>
             </div>
@@ -139,7 +139,7 @@
             </div>
             
             <div class="header-right">
-                <button class="theme-toggle" id="toggleThemeBtn">
+                <button class="theme-toggle" id="toggleThemeBtn" type="button" aria-label="Toggle theme" title="Toggle theme">
                     <i class="fas fa-moon" id="themeIcon"></i>
                     <span class="theme-text">Theme</span>
                 </button>
@@ -188,12 +188,12 @@
 
         <!-- Playlist Navigation -->
         <div class="playlist-nav" id="playlistNav">
-            <button class="playlist-tab active" data-playlist="trending">Trending</button>
-            <button class="playlist-tab" data-playlist="new">New Songs</button>
-            <button class="playlist-tab" data-playlist="english">English</button>
-            <button class="playlist-tab" data-playlist="hindi">Hindi</button>
-            <button class="playlist-tab" data-playlist="bangla">Bangla</button>
-            <button class="playlist-tab" data-playlist="nasheed">Nasheed</button>
+            <button class="playlist-tab active" data-playlist="trending" type="button" aria-label="Open trending playlist">Trending</button>
+            <button class="playlist-tab" data-playlist="new" type="button" aria-label="Open new songs playlist">New Songs</button>
+            <button class="playlist-tab" data-playlist="english" type="button" aria-label="Open english playlist">English</button>
+            <button class="playlist-tab" data-playlist="hindi" type="button" aria-label="Open hindi playlist">Hindi</button>
+            <button class="playlist-tab" data-playlist="bangla" type="button" aria-label="Open bangla playlist">Bangla</button>
+            <button class="playlist-tab" data-playlist="nasheed" type="button" aria-label="Open nasheed playlist">Nasheed</button>
         </div>
 
         <!-- Home Page -->
