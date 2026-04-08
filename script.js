@@ -677,6 +677,7 @@ processAICommand(input) {
             tab.addEventListener('click', () => {
                 const playlist = tab.dataset.playlist;
                 this.switchPlaylist(playlist);
+                this.showPage('home');
             });
         });
         
@@ -878,6 +879,7 @@ processAICommand(input) {
         });
         this.elements.homePage.style.display = 'none';
         this.elements.searchContainer.style.display = 'none';
+        this.elements.playlistNav.style.display = 'none';
         
         // Show selected page
         switch(page) {
@@ -885,6 +887,7 @@ processAICommand(input) {
             default:
                 this.elements.homePage.style.display = 'block';
                 this.elements.searchContainer.style.display = 'block';
+                this.elements.playlistNav.style.display = 'flex';
                 this.elements.audioController.classList.remove('hidden');
                 break;
             case 'albums':
