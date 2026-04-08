@@ -13,6 +13,7 @@ class MusicPlayer {
         this.touchStartX = 0;
         this.touchEndX = 0;
         this.currentPlaylist = 'trending';
+        this.activeSongList = [];
         this.favorites = JSON.parse(localStorage.getItem('azzad-favorites') || '[]');
         this.recentlyPlayed = JSON.parse(localStorage.getItem('azzad-recently-played') || '[]');
         this.playlists = JSON.parse(localStorage.getItem('azzad-playlists') || '[]');
@@ -2056,6 +2057,7 @@ processAICommand(input) {
         this.extractAlbumsAndArtists();
         
         this.filteredSongs = this.getSongsByPlaylist(this.currentPlaylist);
+        this.activeSongList = [...this.filteredSongs];
         this.renderSongs();
         this.initFeaturedSong();
         
@@ -2141,6 +2143,7 @@ processAICommand(input) {
         // Update current playlist and filtered songs
         this.currentPlaylist = playlistName;
         this.filteredSongs = this.getSongsByPlaylist(playlistName);
+        this.activeSongList = [...this.filteredSongs];
         
         // Update queue with new playlist
         this.queue = [...this.filteredSongs];
@@ -2189,6 +2192,7 @@ processAICommand(input) {
                 );
             }
         }
+        this.activeSongList = [...this.filteredSongs];
         this.renderSongs();
     }
     
@@ -2215,12 +2219,12 @@ processAICommand(input) {
         
         // Add songs to the active playlist
         this.filteredSongs.forEach((song, index) => {
-            const card = this.createSongCard(song, index);
+            const card = this.createSongCard(song, index, this.filteredSongs);
             container.appendChild(card);
         });
     }
     
-    createSongCard(song, index) {
+    createSongCard(song, index, songList = this.filteredSongs) {
         const card = document.createElement('div');
         card.className = 'card';
         card.dataset.id = song.id;
@@ -2265,7 +2269,7 @@ processAICommand(input) {
         card.addEventListener('click', (e) => {
             // Don't trigger play if clicking the favorite icon
             if (!e.target.closest('.favorite-btn')) {
-                this.playSong(index);
+                this.playSong(index, songList);
             }
         });
         
@@ -2356,11 +2360,7 @@ processAICommand(input) {
             `;
             
             card.addEventListener('click', () => {
-                // Play the first song in the album
-                const firstSongIndex = this.songs.findIndex(s => s.id === album.songs[0].id);
-                if (firstSongIndex !== -1) {
-                    this.playSong(firstSongIndex);
-                }
+                this.playSong(0, album.songs);
             });
             
             container.appendChild(card);
@@ -2385,7 +2385,7 @@ processAICommand(input) {
         }
         
         this.favorites.forEach((song, index) => {
-            const card = this.createSongCard(song, index);
+            const card = this.createSongCard(song, index, this.favorites);
             container.appendChild(card);
         });
     }
@@ -2408,7 +2408,7 @@ processAICommand(input) {
         }
         
         this.recentlyPlayed.forEach((song, index) => {
-            const card = this.createSongCard(song, index);
+            const card = this.createSongCard(song, index, this.recentlyPlayed);
             container.appendChild(card);
         });
     }
@@ -2456,11 +2456,7 @@ processAICommand(input) {
             `;
             
             card.addEventListener('click', () => {
-                // Play the first song by the artist
-                const firstSongIndex = this.songs.findIndex(s => s.id === artist.songs[0].id);
-                if (firstSongIndex !== -1) {
-                    this.playSong(firstSongIndex);
-                }
+                this.playSong(0, artist.songs);
             });
             
             container.appendChild(card);
@@ -2490,7 +2486,7 @@ processAICommand(input) {
             
             card.innerHTML = `
                 <div class="card-image-container">
-                    <img src="${playlist.image || 'songs/audio-controller.png'}" alt="${playlist.name}" class="card-image">
+                    <img src="${playlist.image || 'Img/Audio-controller.png'}" alt="${playlist.name}" class="card-image">
                     <div class="card-overlay">
                         <div class="play-overlay">
                             <i class="fas fa-play"></i>
@@ -2505,15 +2501,39 @@ processAICommand(input) {
                     <button class="card-button"><i class="fas fa-play"></i> Play</button>
                     <div class="card-stats">
                         <span class="card-duration"><i class="fas fa-music"></i> ${playlist.songs.length} songs</span>
+                        <span class="card-likes">
+                            <button class="mini-action rename-playlist" data-id="${playlist.id}" title="Rename playlist"><i class="fas fa-pen"></i></button>
+                            <button class="mini-action add-current-song" data-id="${playlist.id}" title="Add current song"><i class="fas fa-plus"></i></button>
+                            <button class="mini-action remove-last-song" data-id="${playlist.id}" title="Remove last song"><i class="fas fa-minus"></i></button>
+                            <button class="mini-action delete-playlist" data-id="${playlist.id}" title="Delete playlist"><i class="fas fa-trash"></i></button>
+                        </span>
                     </div>
                 </div>
             `;
             
             card.addEventListener('click', () => {
-                // Set queue to playlist songs and play first song
-                this.queue = [...playlist.songs];
-                this.currentQueueIndex = 0;
-                this.playSong(0);
+                if (playlist.songs.length === 0) {
+                    this.showToast('Playlist is empty. Add songs first.');
+                    return;
+                }
+                this.playSong(0, playlist.songs);
+            });
+
+            card.querySelector('.rename-playlist').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.renamePlaylist(playlist.id);
+            });
+            card.querySelector('.add-current-song').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.addCurrentSongToPlaylist(playlist.id);
+            });
+            card.querySelector('.remove-last-song').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.removeLastSongFromPlaylist(playlist.id);
+            });
+            card.querySelector('.delete-playlist').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.deletePlaylist(playlist.id);
             });
             
             container.appendChild(card);
@@ -2530,10 +2550,69 @@ processAICommand(input) {
                 image: null
             };
             this.playlists.push(newPlaylist);
-            localStorage.setItem('azzad-playlists', JSON.stringify(this.playlists));
+            this.savePlaylists();
             this.renderPlaylists();
             this.showToast(`Playlist "${name}" created`);
         }
+    }
+
+    savePlaylists() {
+        localStorage.setItem('azzad-playlists', JSON.stringify(this.playlists));
+    }
+
+    renamePlaylist(playlistId) {
+        const playlist = this.playlists.find(p => p.id === playlistId);
+        if (!playlist) return;
+        const newName = prompt('Rename playlist:', playlist.name);
+        if (!newName || !newName.trim()) return;
+        playlist.name = newName.trim();
+        this.savePlaylists();
+        this.renderPlaylists();
+        this.showToast('Playlist renamed');
+    }
+
+    addCurrentSongToPlaylist(playlistId) {
+        const playlist = this.playlists.find(p => p.id === playlistId);
+        const currentSong = this.activeSongList[this.currentIndex];
+        if (!playlist) return;
+        if (!currentSong) {
+            this.showToast('No active song to add');
+            return;
+        }
+        if (playlist.songs.some(song => song.id === currentSong.id)) {
+            this.showToast('Song already exists in playlist');
+            return;
+        }
+        playlist.songs.push(currentSong);
+        if (!playlist.image) playlist.image = currentSong.image;
+        this.savePlaylists();
+        this.renderPlaylists();
+        this.showToast(`Added "${currentSong.title}"`);
+    }
+
+    removeLastSongFromPlaylist(playlistId) {
+        const playlist = this.playlists.find(p => p.id === playlistId);
+        if (!playlist) return;
+        if (playlist.songs.length === 0) {
+            this.showToast('Playlist is already empty');
+            return;
+        }
+        const removed = playlist.songs.pop();
+        if (playlist.songs.length === 0) playlist.image = null;
+        this.savePlaylists();
+        this.renderPlaylists();
+        this.showToast(`Removed "${removed.title}"`);
+    }
+
+    deletePlaylist(playlistId) {
+        const playlist = this.playlists.find(p => p.id === playlistId);
+        if (!playlist) return;
+        const confirmed = confirm(`Delete playlist "${playlist.name}"?`);
+        if (!confirmed) return;
+        this.playlists = this.playlists.filter(p => p.id !== playlistId);
+        this.savePlaylists();
+        this.renderPlaylists();
+        this.showToast('Playlist deleted');
     }
     
     renderQueue() {
@@ -2567,7 +2646,7 @@ processAICommand(input) {
             
             queueItem.addEventListener('click', () => {
                 this.currentQueueIndex = index;
-                this.playSong(index);
+                this.playSong(index, this.queue);
                 this.renderQueue();
             });
             
@@ -2575,12 +2654,14 @@ processAICommand(input) {
         });
     }
     
-    playSong(index) {
+    playSong(index, songList = null) {
         try {
-            if (index < 0 || index >= this.filteredSongs.length) return;
+            const sourceSongs = songList || this.activeSongList || this.filteredSongs;
+            if (index < 0 || index >= sourceSongs.length) return;
             
             this.currentIndex = index;
-            const song = this.filteredSongs[this.currentIndex];
+            this.activeSongList = sourceSongs;
+            const song = this.activeSongList[this.currentIndex];
             
             // Pause current audio first
             this.audio.pause();
@@ -2620,6 +2701,7 @@ processAICommand(input) {
             this.saveToRecentlyPlayed(song);
             
             // Update queue index
+            this.queue = [...this.activeSongList];
             this.currentQueueIndex = this.queue.findIndex(s => s.id === song.id);
             if (this.queueOpen) {
                 this.renderQueue();
@@ -2661,7 +2743,7 @@ processAICommand(input) {
                 this.audio.currentTime = 0;
             }
             
-            if (!this.audio.src && this.filteredSongs.length > 0) {
+            if (!this.audio.src && this.activeSongList.length > 0) {
                 this.playSong(0);
             } else {
                 this.audio.play().catch(error => {
@@ -2706,13 +2788,13 @@ processAICommand(input) {
     
     prevSong() {
         let newIndex = this.currentIndex - 1;
-        if (newIndex < 0) newIndex = this.filteredSongs.length - 1;
+        if (newIndex < 0) newIndex = this.activeSongList.length - 1;
         this.playSong(newIndex);
     }
     
     nextSong() {
         let newIndex = this.currentIndex + 1;
-        if (newIndex >= this.filteredSongs.length) newIndex = 0;
+        if (newIndex >= this.activeSongList.length) newIndex = 0;
         this.playSong(newIndex);
     }
     

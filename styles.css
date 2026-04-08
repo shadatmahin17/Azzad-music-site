@@ -1085,6 +1085,20 @@ header {
     font-size: 0.7rem;
 }
 
+.mini-action {
+    background: transparent;
+    border: none;
+    color: var(--text-light);
+    cursor: pointer;
+    margin-left: 0.2rem;
+    transition: var(--transition);
+}
+
+.mini-action:hover {
+    color: var(--primary);
+    transform: scale(1.08);
+}
+
 /* Centered empty state */
 .empty-state {
     display: flex;
