@@ -790,6 +790,7 @@ createFallbackMoodPlaylist(mood, fromAIChat = false) {
             tab.addEventListener('click', () => {
                 const playlist = tab.dataset.playlist;
                 this.switchPlaylist(playlist);
+                this.showPage('home');
             });
         });
         
