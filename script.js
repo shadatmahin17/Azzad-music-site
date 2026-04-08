@@ -545,94 +545,82 @@ processAICommand(input) {
     return "🤔 I'm not sure how to do that. Try saying:\n• 'Play [Song Name]'\n• 'Switch to Dark Mode'\n• 'Volume up'\n• 'Next song'\n\nOr ask for 'help' to see all commands.";
 }
 
-// FIXED: Fetch from Last.fm API (with CORS proxy)
-async fetchLastfmMoodTracks(mood) {
+
+async generateAIMoodPlaylist(fromAIChat = false, moodInput = null) {
+    const mood = moodInput || prompt('Tell Azaad AI your mood (e.g. chill, focus, workout, romantic):', 'chill');
+    if (!mood) return;
+
     try {
-        // Use CORS proxy to bypass CORS restrictions
-        const apiKey = '87007d04e6f965cd3439b871b4789cca';
-        const url = `https://ws.audioscrobbler.com/2.0/?method=tag.gettoptracks&tag=${encodeURIComponent(mood)}&api_key=${apiKey}&format=json&limit=50`;
-        
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json'
-            }
-        });
-        
-        if (!response.ok) {
-            console.warn(`Last.fm API returned ${response.status}`);
-            return [];
-        }
-        
+        this.showToast(`Generating "${mood}" playlist...`);
+        const response = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(mood + ' music')}&entity=song&limit=12`);
         const data = await response.json();
-        console.log('Last.fm response:', data); // Debug log
-        
-        if (!data.tracks || !data.tracks.track) {
-            console.warn('No tracks in Last.fm response');
-            return [];
+        const tracks = (data.results || [])
+            .filter(item => item.previewUrl)
+            .map((item, index) => ({
+                id: Date.now() + index,
+                title: item.trackName,
+                artist: item.artistName,
+                image: item.artworkUrl100 || 'Img/Audio-controller.png',
+                audio: item.previewUrl,
+                genre: item.primaryGenreName || 'ai',
+                duration: Math.floor((item.trackTimeMillis || 180000) / 1000),
+                trending: false,
+                playlist: ['ai-picks']
+            }));
+
+        if (tracks.length === 0) {
+            this.createFallbackMoodPlaylist(mood, fromAIChat);
+            return;
         }
-        
-        const tracks = Array.isArray(data.tracks.track) ? data.tracks.track : [data.tracks.track];
-        
-        return tracks.map(track => ({
-            title: track.name || 'Unknown',
-            artist: track.artist?.name || (typeof track.artist === 'string' ? track.artist : 'Unknown'),
-            lastfmName: `${track.name} ${track.artist?.name || (typeof track.artist === 'string' ? track.artist : '')}`.toLowerCase(),
-            reach: parseInt(track.reach) || 0,
-            url: track.url || ''
-        })).filter(t => t.title && t.artist);
+
+        const aiPlaylist = {
+            id: Date.now(),
+            name: `Azaad AI • ${mood}`,
+            songs: tracks,
+            image: tracks[0].image
+        };
+
+        this.playlists.unshift(aiPlaylist);
+        this.savePlaylists();
+        this.playSong(0, tracks);
+        this.showToast(`Azaad AI playlist ready: ${tracks.length} songs`);
+
+        if (fromAIChat) {
+            this.addChatMessage('ai', `✅ Created "${aiPlaylist.name}" with ${tracks.length} songs and started playback.`);
+        }
     } catch (error) {
-        console.error('Last.fm API error:', error);
-        return [];
+        console.error('AI playlist generation failed:', error);
+        this.createFallbackMoodPlaylist(mood, fromAIChat);
     }
 }
 
-// FIXED: Jamendo API with better error handling
-async fetchJamendoMoodTracks(mood) {
-    try {
-        const clientId = '0ae88f32';
-        const url = `https://api.jamendo.com/v3.0/tracks?client_id=${clientId}&search=${encodeURIComponent(mood)}&limit=12&format=json&imagesize=600`;
-        
-        console.log('Fetching from Jamendo:', url); // Debug log
-        
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json'
-            }
-        });
-        
-        if (!response.ok) {
-            console.warn(`Jamendo API returned ${response.status}`);
-            return [];
-        }
-        
-        const data = await response.json();
-        console.log('Jamendo response:', data); // Debug log
-        
-        if (!data.results || data.results.length === 0) {
-            console.warn('No tracks from Jamendo');
-            return [];
-        }
-        
-        return data.results
-            .filter(item => item.audiodownload && item.audio && item.name)
-            .slice(0, 12)
-            .map((item, index) => ({
-                id: 'jamendo-' + item.id,
-                title: item.name || 'Unknown',
-                artist: item.artist_name || 'Unknown Artist',
-                image: item.image || 'Img/Audio-controller.png',
-                audio: item.audio,  // Use streaming URL
-                genre: (item.tags && item.tags[0]) || mood,
-                duration: Math.floor(item.duration || 180),
-                trending: false,
-                playlist: ['ai-picks', 'jamendo'],
-                source: 'Jamendo'
-            }));
-    } catch (error) {
-        console.error('Jamendo API error:', error);
-        return [];
+createFallbackMoodPlaylist(mood, fromAIChat = false) {
+    const moodKeywords = mood.toLowerCase().split(/\s+/).filter(Boolean);
+    const localTracks = this.songs
+        .filter(song => {
+            const haystack = `${song.title} ${song.artist} ${song.genre}`.toLowerCase();
+            return moodKeywords.some(keyword => haystack.includes(keyword));
+        })
+        .slice(0, 12);
+
+    const fallbackTracks = localTracks.length > 0
+        ? localTracks
+        : this.songs.slice(0, 10);
+
+    const aiPlaylist = {
+        id: Date.now(),
+        name: `Azaad AI • ${mood} (Local Mix)`,
+        songs: fallbackTracks,
+        image: fallbackTracks[0]?.image || 'Img/Audio-controller.png'
+    };
+
+    this.playlists.unshift(aiPlaylist);
+    this.savePlaylists();
+    this.playSong(0, fallbackTracks);
+    this.showToast(`AI local mix ready: ${fallbackTracks.length} songs`);
+
+    if (fromAIChat) {
+        this.addChatMessage('ai', `✅ API unavailable, created local mood mix "${aiPlaylist.name}" with ${fallbackTracks.length} songs.`);
     }
 }
     
