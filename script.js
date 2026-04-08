@@ -66,6 +66,13 @@ class MusicPlayer {
             contactPage: document.getElementById('contactPage'),
             searchBar: document.getElementById('searchBar'),
             searchContainer: document.getElementById('searchContainer'),
+            startListeningBtn: document.getElementById('startListeningBtn'),
+            exploreTrendingBtn: document.getElementById('exploreTrendingBtn'),
+            heroFeaturedPlay: document.getElementById('heroFeaturedPlay'),
+            generatePlaylistBtn: document.getElementById('generatePlaylistBtn'),
+            heroFeaturedTitle: document.getElementById('heroFeaturedTitle'),
+            heroFeaturedArtist: document.getElementById('heroFeaturedArtist'),
+            heroFeaturedImage: document.getElementById('heroFeaturedImage'),
             searchFilters: document.getElementById('searchFilters'),
             audioController: document.getElementById('audioController'),
             currentTime: document.getElementById('currentTime'),
@@ -613,6 +620,22 @@ processAICommand(input) {
         
         // Theme toggle
         this.elements.themeToggle.addEventListener('click', () => this.toggleTheme());
+
+        if (this.elements.startListeningBtn) {
+            this.elements.startListeningBtn.addEventListener('click', () => this.playSong(0));
+        }
+        if (this.elements.exploreTrendingBtn) {
+            this.elements.exploreTrendingBtn.addEventListener('click', () => this.switchPlaylist('trending'));
+        }
+        if (this.elements.heroFeaturedPlay) {
+            this.elements.heroFeaturedPlay.addEventListener('click', () => this.playSong(0));
+        }
+        if (this.elements.generatePlaylistBtn) {
+            this.elements.generatePlaylistBtn.addEventListener('click', () => {
+                this.toggleAIChat(true);
+                this.showToast('Azaad AI is ready. Try: "Play songs by Arijit"');
+            });
+        }
         
         // Sidebar toggle
         this.elements.menuToggle.addEventListener('click', () => {
@@ -2031,9 +2054,32 @@ processAICommand(input) {
         
         this.filteredSongs = this.getSongsByPlaylist(this.currentPlaylist);
         this.renderSongs();
+        this.initFeaturedSong();
         
         // Initialize queue with current playlist
         this.queue = [...this.filteredSongs];
+    }
+
+    initFeaturedSong() {
+        const featured = this.filteredSongs[0];
+        if (!featured) return;
+
+        this.currentIndex = 0;
+        this.audio = new Audio(featured.audio);
+        this.audio.volume = this.volume;
+        this.bindAudioEvents();
+
+        this.elements.audioController.classList.remove('hidden');
+        this.elements.currentSong.textContent = featured.title;
+        this.elements.currentArtist.textContent = featured.artist;
+        this.elements.songCover.src = featured.image;
+        this.elements.songCover.alt = `${featured.title} cover`;
+        this.elements.totalTime.textContent = this.formatTime(featured.duration);
+        this.elements.currentTime.textContent = '0:00';
+
+        if (this.elements.heroFeaturedTitle) this.elements.heroFeaturedTitle.textContent = featured.title;
+        if (this.elements.heroFeaturedArtist) this.elements.heroFeaturedArtist.textContent = featured.artist;
+        if (this.elements.heroFeaturedImage) this.elements.heroFeaturedImage.src = featured.image;
     }
     
     extractAlbumsAndArtists() {
