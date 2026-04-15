@@ -371,7 +371,7 @@ header {
     display: flex;
     align-items: center;
     flex: 0 0 auto;
-    width: 40px;
+    width: auto;
     justify-content: flex-start;
 }
 
@@ -430,7 +430,8 @@ header {
     align-items: center;
     justify-content: flex-end;
     flex: 0 0 auto;
-    width: 40px;
+    width: auto;
+    gap: 0.5rem;
 }
 
 .theme-toggle {
@@ -462,6 +463,119 @@ header {
 
 .theme-text {
     display: none;
+}
+
+.account-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: var(--card-bg);
+    border: 1px solid rgba(0, 191, 165, 0.2);
+    color: var(--text);
+    cursor: pointer;
+    padding: 0.5rem 0.8rem;
+    border-radius: 20px;
+    transition: var(--transition);
+    min-height: 44px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.account-toggle:hover {
+    background: rgba(0, 191, 165, 0.12);
+    transform: translateY(-1px) scale(1.02);
+}
+
+.account-toggle:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.auth-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1200;
+    padding: 1rem;
+}
+
+.auth-modal.active {
+    display: flex;
+}
+
+.auth-modal-card {
+    width: min(420px, 96vw);
+    background: var(--card-bg);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 1.2rem;
+    box-shadow: var(--shadow);
+    position: relative;
+}
+
+.auth-close {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: transparent;
+    border: none;
+    color: var(--text-light);
+    cursor: pointer;
+}
+
+.auth-subtitle {
+    color: var(--text-light);
+    margin: 0.5rem 0 1rem;
+    font-size: 0.92rem;
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.auth-form label {
+    font-size: 0.88rem;
+    font-weight: 600;
+}
+
+.auth-form input {
+    padding: 0.75rem 0.9rem;
+    border-radius: 10px;
+    border: 1px solid rgba(163, 176, 207, 0.35);
+    background: var(--bg);
+    color: var(--text);
+}
+
+.auth-submit,
+.auth-logout {
+    margin-top: 0.6rem;
+    border: none;
+    border-radius: 10px;
+    padding: 0.72rem 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.auth-submit {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: #fff;
+}
+
+.auth-logout {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.auth-logged-in {
+    margin-top: 0.4rem;
 }
 
 /* Improved Clock Widget */
@@ -1838,8 +1952,9 @@ footer {
 
     .header-right {
         flex: 0 0 auto;
-        width: 40px;
+        width: auto;
         justify-content: flex-end;
+        gap: 0.5rem;
     }
 
     .logo-title {
@@ -1869,6 +1984,12 @@ footer {
         width: 40px;
         height: 40px;
         justify-content: center;
+    }
+
+    .account-toggle {
+        min-height: 40px;
+        padding: 0.45rem 0.65rem;
+        font-size: 0.78rem;
     }
 
     /* Mobile Clock */
@@ -1912,13 +2033,23 @@ footer {
         margin-bottom: 1.25rem;
     }
 
-    .header-left, .header-right {
+    .header-left {
         width: 35px;
+    }
+
+    .header-right {
+        width: auto;
+        gap: 0.35rem;
     }
 
     .menu-toggle, .theme-toggle {
         width: 35px;
         height: 35px;
+    }
+
+    .account-toggle {
+        min-height: 35px;
+        padding: 0.35rem 0.55rem;
     }
 
     .logo-title img {

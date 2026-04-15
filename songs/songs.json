@@ -16,5 +16,17 @@
         "artist": "Dua Lipa",
         "image": "album3.jpg",
         "audio": "3.mp3"
+    },
+    {
+        "title": "JKT",
+        "artist": "Azaad",
+        "image": "album4.jpg",
+        "audio": "4.mp3"
+    },
+    {
+        "title": "AUH",
+        "artist": "Azaad",
+        "image": "album5.jpg",
+        "audio": "5.mp3"
     }
 ]

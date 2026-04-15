@@ -17,6 +17,7 @@ class MusicPlayer {
         this.favorites = JSON.parse(localStorage.getItem('azzad-favorites') || '[]');
         this.recentlyPlayed = JSON.parse(localStorage.getItem('azzad-recently-played') || '[]');
         this.playlists = JSON.parse(localStorage.getItem('azzad-playlists') || '[]');
+        this.account = JSON.parse(localStorage.getItem('azzad-account') || 'null');
         this.albums = [];
         this.artists = [];
         this.queue = [];
@@ -27,6 +28,7 @@ class MusicPlayer {
         this.loadSongs();
         this.setHomeChromeVisibility(true);
         this.initTheme();
+        this.initAuth();
         this.initVolume();
         this.initClock();
         this.simulateLoading();
@@ -101,6 +103,14 @@ class MusicPlayer {
             themeToggle: document.getElementById('toggleThemeBtn'),
             themeIcon: document.getElementById('themeIcon'),
             themeText: document.querySelector('.theme-text'),
+            accountBtn: document.getElementById('accountBtn'),
+            accountLabel: document.getElementById('accountLabel'),
+            authModal: document.getElementById('authModal'),
+            closeAuthModal: document.getElementById('closeAuthModal'),
+            authForm: document.getElementById('authForm'),
+            authLoggedIn: document.getElementById('authLoggedIn'),
+            authUserEmail: document.getElementById('authUserEmail'),
+            logoutBtn: document.getElementById('logoutBtn'),
             menuToggle: document.getElementById('menuToggle'),
             closeSidebar: document.getElementById('closeSidebar'),
             sidebar: document.getElementById('sidebar'),
@@ -713,6 +723,27 @@ createFallbackMoodPlaylist(mood, fromAIChat = false) {
         // Theme toggle
         this.elements.themeToggle.addEventListener('click', () => this.toggleTheme());
 
+        // Account auth
+        if (this.elements.accountBtn) {
+            this.elements.accountBtn.addEventListener('click', () => this.openAuthModal());
+        }
+        if (this.elements.closeAuthModal) {
+            this.elements.closeAuthModal.addEventListener('click', () => this.closeAuthModal());
+        }
+        if (this.elements.authModal) {
+            this.elements.authModal.addEventListener('click', (e) => {
+                if (e.target === this.elements.authModal) {
+                    this.closeAuthModal();
+                }
+            });
+        }
+        if (this.elements.authForm) {
+            this.elements.authForm.addEventListener('submit', (e) => this.handleAuthSubmit(e));
+        }
+        if (this.elements.logoutBtn) {
+            this.elements.logoutBtn.addEventListener('click', () => this.logout());
+        }
+
         if (this.elements.startListeningBtn) {
             this.elements.startListeningBtn.addEventListener('click', () => this.playSong(0));
         }
@@ -1084,6 +1115,77 @@ createFallbackMoodPlaylist(mood, fromAIChat = false) {
             localStorage.setItem('azzad-theme', 'light');
             this.elements.themeIcon.classList.remove('fa-sun');
             this.elements.themeIcon.classList.add('fa-moon');
+        }
+    }
+
+    initAuth() {
+        this.updateAccountUI();
+    }
+
+    openAuthModal() {
+        if (!this.elements.authModal) return;
+
+        this.updateAccountUI();
+        this.elements.authModal.classList.add('active');
+        this.elements.authModal.setAttribute('aria-hidden', 'false');
+
+        if (!this.account && this.elements.authForm) {
+            const firstInput = this.elements.authForm.querySelector('input');
+            if (firstInput) firstInput.focus();
+        }
+    }
+
+    closeAuthModal() {
+        if (!this.elements.authModal) return;
+        this.elements.authModal.classList.remove('active');
+        this.elements.authModal.setAttribute('aria-hidden', 'true');
+    }
+
+    handleAuthSubmit(event) {
+        event.preventDefault();
+        if (!this.elements.authForm) return;
+
+        const email = this.elements.authForm.email.value.trim().toLowerCase();
+        const password = this.elements.authForm.password.value.trim();
+
+        if (!email || !password) {
+            this.showToast('Please enter email and password');
+            return;
+        }
+
+        this.account = {
+            email,
+            signedInAt: new Date().toISOString()
+        };
+        localStorage.setItem('azzad-account', JSON.stringify(this.account));
+        this.elements.authForm.reset();
+        this.updateAccountUI();
+        this.showToast('Account signed in successfully');
+        this.closeAuthModal();
+    }
+
+    logout() {
+        this.account = null;
+        localStorage.removeItem('azzad-account');
+        this.updateAccountUI();
+        this.showToast('Logged out');
+    }
+
+    updateAccountUI() {
+        if (this.elements.accountLabel) {
+            this.elements.accountLabel.textContent = this.account ? 'Account' : 'Sign in';
+        }
+
+        if (this.elements.authForm) {
+            this.elements.authForm.hidden = Boolean(this.account);
+        }
+
+        if (this.elements.authLoggedIn) {
+            this.elements.authLoggedIn.hidden = !this.account;
+        }
+
+        if (this.account && this.elements.authUserEmail) {
+            this.elements.authUserEmail.textContent = this.account.email;
         }
     }
     
